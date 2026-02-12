@@ -1,0 +1,28 @@
+{
+  "name": "@charui/threedee",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "oxlint -c ../../.oxlintrc.json && tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@charui/core": "workspace:*",
+    "@charui/react": "workspace:*",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
+    "@types/react": "^19.2.14",
+    "@types/three": "^0.182.0",
+    "react": "^19.2.4",
+    "three": "^0.182.0",
+    "troika-three-text": "^0.52.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

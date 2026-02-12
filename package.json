@@ -1,0 +1,29 @@
+{
+  "name": "charui",
+  "private": true,
+  "packageManager": "pnpm@10.28.1",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "oxlint && turbo lint",
+    "test": "turbo test",
+    "storybook": "storybook dev -p 6006",
+    "playwright": "playwright test"
+  },
+  "devDependencies": {
+    "@charui/dom": "workspace:*",
+    "@charui/terminal": "workspace:*",
+    "@charui/threedee": "workspace:*",
+    "@xterm/xterm": "^5.5.0",
+    "@playwright/test": "^1.58.2",
+    "@storybook/react": "^10.2.8",
+    "@storybook/react-vite": "^10.2.8",
+    "oxlint": "^1.43.0",
+    "serve": "^14.2.5",
+    "storybook": "^10.2.8",
+    "turbo": "^2.8.3",
+    "vite": "^7.3.1",
+    "vite-plugin-top-level-await": "^1.6.0",
+    "vite-plugin-wasm": "^3.5.0"
+  }
+}

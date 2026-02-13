@@ -12,6 +12,7 @@ import { getTextRenderInfo } from "troika-three-text";
 import * as THREE from "three";
 
 import {
+  type Bounds,
   type CellStyle,
   type Database,
   type LayoutNode,
@@ -103,6 +104,59 @@ function getRenderOrder(database: Database): Map<string, number> {
     walk(database.rootId);
   }
   return order;
+}
+
+function boundsOverlap(a: Bounds, b: Bounds): boolean {
+  return !(
+    a.x + a.width <= b.x ||
+    b.x + b.width <= a.x ||
+    a.y + a.height <= b.y ||
+    b.y + b.height <= a.y
+  );
+}
+
+/**
+ * Assign depths so non-overlapping nodes share the same layer.
+ * Walks DFS order; for each node, picks the lowest depth where
+ * its bounds don't overlap with any node already at that depth.
+ */
+function getFlattenedDepths(database: Database): Map<string, number> {
+  const depths = new Map<string, number>();
+  const depthBuckets: Bounds[][] = [];
+
+  function walk(nodeId: string) {
+    const node = database.nodes.get(nodeId);
+    if (!node?.bounds) {
+      return;
+    }
+
+    let assignedDepth = 0;
+    for (let d = 0; d < depthBuckets.length; d++) {
+      const hasOverlap = depthBuckets[d].some((b) =>
+        boundsOverlap(b, node.bounds!),
+      );
+      if (!hasOverlap) {
+        assignedDepth = d;
+        break;
+      }
+      assignedDepth = d + 1;
+    }
+
+    if (assignedDepth >= depthBuckets.length) {
+      depthBuckets.push([]);
+    }
+    depthBuckets[assignedDepth].push(node.bounds);
+    depths.set(nodeId, assignedDepth);
+
+    for (const childId of node.childIds) {
+      walk(childId);
+    }
+  }
+
+  if (database.rootId) {
+    walk(database.rootId);
+  }
+  return depths;
 }
 
 interface TextRun {
@@ -255,10 +309,12 @@ function Scene({
   database,
   overlayState,
   fonts,
+  flatten = true,
 }: {
   database: Database;
   overlayState?: OverlayState;
   fonts?: FontSet;
+  flatten?: boolean;
 }) {
   const version = useVersion(database);
   const [cellW, setCellW] = useState<number | null>(null);
@@ -275,7 +331,9 @@ function Scene({
   }, [fontUrl]);
 
   const nodes = useMemo(() => {
-    const order = getRenderOrder(database);
+    const order = flatten
+      ? getFlattenedDepths(database)
+      : getRenderOrder(database);
     const result: { node: LayoutNode; depth: number }[] = [];
     for (const node of database.nodes.values()) {
       if (node.bounds) {
@@ -284,7 +342,7 @@ function Scene({
     }
     return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- version signals database mutation
-  }, [database, version]);
+  }, [database, version, flatten]);
 
   const root = database.rootId ? database.nodes.get(database.rootId) : null;
   const rootW = root?.bounds?.width ?? 0;
@@ -316,6 +374,8 @@ export interface ExplodedSceneProps {
   overlayState?: OverlayState;
   interactive?: boolean;
   fonts?: FontSet;
+  /** Collapse non-overlapping nodes onto the same layer. Default true. */
+  flatten?: boolean;
 }
 
 const noopEvents = () => ({
@@ -330,6 +390,7 @@ export function ExplodedScene({
   overlayState,
   interactive = true,
   fonts,
+  flatten = true,
 }: ExplodedSceneProps) {
   return (
     <Canvas
@@ -342,7 +403,12 @@ export function ExplodedScene({
     >
       {interactive && <OrbitControls />}
       <ambientLight intensity={1} />
-      <Scene database={database} overlayState={overlayState} fonts={fonts} />
+      <Scene
+        database={database}
+        overlayState={overlayState}
+        fonts={fonts}
+        flatten={flatten}
+      />
     </Canvas>
   );
 }

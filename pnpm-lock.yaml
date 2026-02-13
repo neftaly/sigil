@@ -183,19 +183,6 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18
 
-  packages/test-utils:
-    dependencies:
-      '@charui/core':
-        specifier: workspace:*
-        version: link:../core
-    devDependencies:
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: ^4.0.18
-        version: 4.0.18
-
   packages/threedee:
     dependencies:
       '@charui/core':

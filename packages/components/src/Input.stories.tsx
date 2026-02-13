@@ -2,7 +2,7 @@ import { createElement, useRef, useState } from "react";
 
 import type { LayoutNode } from "@charui/core";
 import { Box, Text, useCanvasContext } from "@charui/react";
-import { useResize } from "@charui/interactions";
+import { useDrag, useResize } from "@charui/interactions";
 import { CharuiCanvas } from "@charui/dom";
 
 import { Input, type InputChangeEvent } from "./Input.tsx";
@@ -122,5 +122,48 @@ function ResizableBoxInner() {
 export const ResizableBox = () => (
   <CharuiCanvas width={40} height={15}>
     <ResizableBoxInner />
+  </CharuiCanvas>
+);
+
+function DraggableBoxInner() {
+  const { eventState } = useCanvasContext();
+  const nodeRef = useRef<LayoutNode>(null);
+  const [pos, setPos] = useState({ left: 5, top: 3 });
+
+  const { deltaCol, deltaRow, handlers } = useDrag({
+    eventState,
+    nodeRef,
+    onDragEnd: (delta) => {
+      setPos((prev) => ({
+        left: prev.left + delta.col,
+        top: prev.top + delta.row,
+      }));
+    },
+  });
+
+  return createElement(
+    "box",
+    { width: 40, height: 15 },
+    createElement(
+      "box",
+      {
+        ref: nodeRef,
+        border: true,
+        position: "absolute",
+        left: pos.left + deltaCol,
+        top: pos.top + deltaRow,
+        width: 16,
+        height: 3,
+        cursor: "grab",
+        ...handlers,
+      },
+      createElement("text", { content: "Drag me!" }),
+    ),
+  );
+}
+
+export const DraggableBox = () => (
+  <CharuiCanvas width={40} height={15}>
+    <DraggableBoxInner />
   </CharuiCanvas>
 );

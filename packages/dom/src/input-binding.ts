@@ -225,6 +225,12 @@ export function bindInput(
     handleKeyEvent(e, "keyup");
   };
 
+  const onSelectStart = (e: Event) => {
+    if (eventState.capturedNodeId) {
+      e.preventDefault();
+    }
+  };
+
   container.addEventListener("pointerdown", onPointerDown);
   container.addEventListener("pointerup", onPointerUp);
   container.addEventListener("pointermove", onPointerMove);
@@ -232,6 +238,7 @@ export function bindInput(
   container.addEventListener("lostpointercapture", onCancelCapture);
   container.addEventListener("keydown", onKeyDown);
   container.addEventListener("keyup", onKeyUp);
+  container.addEventListener("selectstart", onSelectStart);
 
   // Make container focusable for keyboard events
   if (!container.hasAttribute("tabindex")) {
@@ -253,6 +260,7 @@ export function bindInput(
       container.removeEventListener("lostpointercapture", onCancelCapture);
       container.removeEventListener("keydown", onKeyDown);
       container.removeEventListener("keyup", onKeyUp);
+      container.removeEventListener("selectstart", onSelectStart);
     },
     sync(text: string, selectionStart: number, selectionEnd: number) {
       editContext.updateText(0, editContext.text.length, text);

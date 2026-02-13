@@ -38,7 +38,7 @@ React JSX -> Reconciler -> Layout Database -> Cell Grid -> Backend
 | `@charui/components` | Input, ScrollBox | Input done, ScrollBox TODO |
 | `@charui/terminal` | ANSI rendering (`toAnsi`) for terminal output | Done |
 | `@charui/threedee` | 3D exploded view via React Three Fiber | Done |
-| `@charui/test-utils` | toString backend, snapshot helpers | Done |
+| ~~`@charui/test-utils`~~ | Removed — `gridToString` lives in `@charui/core` | — |
 
 ## Build phases (for 1-shot rebuild)
 
@@ -77,8 +77,8 @@ React JSX -> Reconciler -> Layout Database -> Cell Grid -> Backend
 
 **Dependencies:** `react`, `react-reconciler`, `@charui/core`
 
-### Phase 4: @charui/test-utils
-- `toString.ts` -- convert `Cell[][]` to string, filtering continuation cells
+### Phase 4: ~~@charui/test-utils~~ (removed)
+- `gridToString` now lives in `@charui/core/src/cell.ts`
 
 ### Phase 5: @charui/dom
 - `dom.ts` -- `renderToDOM(container, grid, prevGrid)` diff-based. Groups consecutive cells with same style into `<span>`. Row `<div>` reuse. `pixelToGrid(container, clientX, clientY)` with per-instance char width measurement (not global cache). `syncSelectionToDOM(container, overlayState)` maps overlay selection ranges to browser Selection API for clipboard support. `gridToDOM(container, row, col)` maps grid coords to DOM node+offset.

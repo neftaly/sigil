@@ -165,7 +165,8 @@ function TerminalPane({
     termRef.current = term;
 
     // Enable SGR extended mouse reporting (any-event tracking)
-    term.write("\x1b[?1003h\x1b[?1006h");
+    // Hide native xterm cursor (charui renders its own via overlay inversions)
+    term.write("\x1b[?1003h\x1b[?1006h\x1b[?25l");
 
     const dataDisposable = term.onData((data) => {
       const db = dbRef.current;
@@ -244,10 +245,12 @@ function ThreeDeePane({
   db,
   overlayState,
   fonts,
+  flatten,
 }: {
   db: Database | null;
   overlayState: OverlayState | null;
   fonts: FontSet;
+  flatten: boolean;
 }) {
   if (!db) {
     return (
@@ -269,6 +272,7 @@ function ThreeDeePane({
       database={db}
       overlayState={overlayState ?? undefined}
       fonts={fonts}
+      flatten={flatten}
     />
   );
 }
@@ -276,9 +280,11 @@ function ThreeDeePane({
 function TriPaneDecorator({
   children,
   fontKey,
+  flatten,
 }: {
   children: React.ReactNode;
   fontKey: string;
+  flatten: boolean;
 }) {
   const isWide = useIsWide();
   const dbRef = useRef<Database | null>(null);
@@ -372,6 +378,7 @@ function TriPaneDecorator({
           db={dbRef.current}
           overlayState={overlayRef.current}
           fonts={config.fonts}
+          flatten={flatten}
         />
       </div>
     </div>
@@ -393,16 +400,32 @@ const preview: Preview = {
         dynamicTitle: true,
       },
     },
+    flatten: {
+      description: "Flatten non-overlapping 3D layers",
+      toolbar: {
+        title: "Flatten",
+        icon: "collapse",
+        items: [
+          { value: true, title: "Flatten layers" },
+          { value: false, title: "Explode all layers" },
+        ],
+        dynamicTitle: true,
+      },
+    },
   },
   initialGlobals: {
     font: "hack",
+    flatten: true,
   },
   parameters: {
     layout: "fullscreen",
   },
   decorators: [
     (Story, context) => (
-      <TriPaneDecorator fontKey={context.globals.font as string}>
+      <TriPaneDecorator
+        fontKey={context.globals.font as string}
+        flatten={context.globals.flatten as boolean}
+      >
         <Story />
       </TriPaneDecorator>
     ),

@@ -41,4 +41,3 @@ React JSX -> Reconciler -> Layout Database -> Cell Grid -> Backend
 - `@charui/dom` -- DOM render backend, EditContext input capture
 - `@charui/interactions` -- useDrag, useResize, input adapters
 - `@charui/components` -- Input, ScrollBox
-- `@charui/test-utils` -- toString backend, snapshot helpers

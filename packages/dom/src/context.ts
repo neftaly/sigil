@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react";
+import { createContext } from "react";
 
 import type {
   Database,
@@ -14,13 +14,5 @@ export interface CharuiContextValue {
 }
 
 export const CharuiContext = createContext<CharuiContextValue | null>(null);
-
-export function useCharui(): CharuiContextValue {
-  const ctx = useContext(CharuiContext);
-  if (!ctx) {
-    throw new Error("useCharui must be used within a <CharuiCanvas>");
-  }
-  return ctx;
-}
 
 export const FlushEmitterContext = createContext<FlushEmitter | null>(null);

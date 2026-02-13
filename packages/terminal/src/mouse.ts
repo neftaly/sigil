@@ -1,4 +1,8 @@
-import type { OverlayState, PointerEvent } from "@charui/core";
+import {
+  type OverlayState,
+  type PointerEvent,
+  SELECTION_OVERLAY_PREFIX,
+} from "@charui/core";
 
 /** Minimal terminal interface for selection sync (avoids @xterm/xterm dependency). */
 interface TerminalSelection {
@@ -62,7 +66,7 @@ export function syncSelectionToTerminal(
 
   let selectionOverlay = null;
   for (const overlay of overlayState.overlays.values()) {
-    if (overlay.id.startsWith("selection-")) {
+    if (overlay.id.startsWith(SELECTION_OVERLAY_PREFIX)) {
       selectionOverlay = overlay;
       break;
     }

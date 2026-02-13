@@ -41,6 +41,7 @@ export {
   dispatchPointerEvent,
   dispatchKeyEvent,
   dispatchTextUpdateEvent,
+  isNavigationKey,
 } from "./events.ts";
 export {
   type NodeProps,
@@ -62,6 +63,7 @@ export {
   type StyleTransform,
   type Overlay,
   type OverlayState,
+  SELECTION_OVERLAY_PREFIX,
   createOverlayState,
   setOverlay,
   removeOverlay,

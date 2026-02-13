@@ -3,6 +3,7 @@ import {
   type CellSpan,
   type CellStyle,
   type OverlayState,
+  SELECTION_OVERLAY_PREFIX,
   groupCells,
   styleEquals,
 } from "@charui/core";
@@ -167,7 +168,7 @@ export function syncSelectionToDOM(
   // Find the selection overlay (if any)
   let selectionOverlay = null;
   for (const overlay of overlayState.overlays.values()) {
-    if (overlay.id.startsWith("selection-")) {
+    if (overlay.id.startsWith(SELECTION_OVERLAY_PREFIX)) {
       selectionOverlay = overlay;
       break;
     }

@@ -1,12 +1,11 @@
 import { type ReactNode, createElement, useEffect, useRef } from "react";
 
-import type {
-  KeyEvent,
-  LayoutNode,
-  PointerEvent,
-  TextUpdateEvent,
-} from "@charui/core";
 import {
+  type KeyEvent,
+  type LayoutNode,
+  type PointerEvent,
+  SELECTION_OVERLAY_PREFIX,
+  type TextUpdateEvent,
   releasePointerCapture,
   removeOverlay,
   setOverlay,
@@ -197,7 +196,7 @@ export function Input({
     const node = nodeRef.current;
     if (!showCursor || !node?.bounds) {
       if (node) {
-        removeOverlay(overlayState, `selection-${node.id}`);
+        removeOverlay(overlayState, `${SELECTION_OVERLAY_PREFIX}${node.id}`);
       }
       return;
     }
@@ -218,12 +217,12 @@ export function Input({
     const clampedUpper = Math.min(width - 1, visibleUpper - 1);
 
     if (clampedLower > clampedUpper) {
-      removeOverlay(overlayState, `selection-${node.id}`);
+      removeOverlay(overlayState, `${SELECTION_OVERLAY_PREFIX}${node.id}`);
       return;
     }
 
     setOverlay(overlayState, {
-      id: `selection-${node.id}`,
+      id: `${SELECTION_OVERLAY_PREFIX}${node.id}`,
       priority: 100,
       ranges: [
         {
@@ -237,7 +236,7 @@ export function Input({
     });
 
     return () => {
-      removeOverlay(overlayState, `selection-${node.id}`);
+      removeOverlay(overlayState, `${SELECTION_OVERLAY_PREFIX}${node.id}`);
     };
   }, [
     showCursor,

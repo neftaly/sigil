@@ -1,6 +1,8 @@
 import type { Bounds } from "./database.ts";
 import { type Cell, type CellStyle, gridWidth } from "./cell.ts";
 
+export const SELECTION_OVERLAY_PREFIX = "selection-";
+
 // --- Types ---
 
 export interface GridRange {

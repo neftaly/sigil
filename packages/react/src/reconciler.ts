@@ -19,6 +19,82 @@ export interface ReconcilerOptions {
   onCommit?: () => void;
 }
 
+function detachChild(database: Database, child: LayoutNode) {
+  if (child.parentId === null) {
+    return;
+  }
+  const oldParent = database.nodes.get(child.parentId);
+  if (oldParent) {
+    const index = oldParent.childIds.indexOf(child.id);
+    if (index !== -1) {
+      oldParent.childIds.splice(index, 1);
+      oldParent.yogaNode.removeChild(child.yogaNode);
+    }
+  }
+}
+
+function appendChildToParent(
+  database: Database,
+  parent: LayoutNode,
+  child: LayoutNode,
+) {
+  detachChild(database, child);
+
+  child.parentId = parent.id;
+  parent.childIds.push(child.id);
+  parent.yogaNode.insertChild(child.yogaNode, parent.childIds.length - 1);
+}
+
+function removeChildFromParent(
+  database: Database,
+  parent: LayoutNode,
+  child: LayoutNode,
+) {
+  const index = parent.childIds.indexOf(child.id);
+  if (index !== -1) {
+    parent.childIds.splice(index, 1);
+    parent.yogaNode.removeChild(child.yogaNode);
+  }
+  removeNode(database, child.id);
+}
+
+function insertChildBefore(
+  database: Database,
+  parent: LayoutNode,
+  child: LayoutNode,
+  beforeChild: LayoutNode,
+) {
+  detachChild(database, child);
+
+  const beforeIndex = parent.childIds.indexOf(beforeChild.id);
+  if (beforeIndex === -1) {
+    parent.childIds.push(child.id);
+  } else {
+    parent.childIds.splice(beforeIndex, 0, child.id);
+  }
+
+  child.parentId = parent.id;
+  const yogaIndex = parent.childIds.indexOf(child.id);
+  parent.yogaNode.insertChild(child.yogaNode, yogaIndex);
+}
+
+function setTextMeasureFunc(node: LayoutNode, props: TextNodeProps) {
+  const content = props.content ?? "";
+  const wrapMode: WrapMode = props.wrap ? "wrap" : "nowrap";
+
+  node.yogaNode.setMeasureFunc((maxWidth, widthMode) => {
+    // MeasureMode.Undefined = 0
+    const width = widthMode === 0 ? Infinity : maxWidth;
+    const measured = measureText(content, wrapMode, width);
+    return { width: measured.width, height: measured.height };
+  });
+
+  // Mark the node dirty so Yoga knows to re-measure
+  if (node.yogaNode.getChildCount() === 0) {
+    node.yogaNode.markDirty();
+  }
+}
+
 export function createReconciler(
   database: Database,
   options?: ReconcilerOptions,
@@ -264,80 +340,4 @@ export function createReconciler(
   });
 
   return reconciler;
-}
-
-function detachChild(database: Database, child: LayoutNode) {
-  if (child.parentId === null) {
-    return;
-  }
-  const oldParent = database.nodes.get(child.parentId);
-  if (oldParent) {
-    const index = oldParent.childIds.indexOf(child.id);
-    if (index !== -1) {
-      oldParent.childIds.splice(index, 1);
-      oldParent.yogaNode.removeChild(child.yogaNode);
-    }
-  }
-}
-
-function appendChildToParent(
-  database: Database,
-  parent: LayoutNode,
-  child: LayoutNode,
-) {
-  detachChild(database, child);
-
-  child.parentId = parent.id;
-  parent.childIds.push(child.id);
-  parent.yogaNode.insertChild(child.yogaNode, parent.childIds.length - 1);
-}
-
-function removeChildFromParent(
-  database: Database,
-  parent: LayoutNode,
-  child: LayoutNode,
-) {
-  const index = parent.childIds.indexOf(child.id);
-  if (index !== -1) {
-    parent.childIds.splice(index, 1);
-    parent.yogaNode.removeChild(child.yogaNode);
-  }
-  removeNode(database, child.id);
-}
-
-function insertChildBefore(
-  database: Database,
-  parent: LayoutNode,
-  child: LayoutNode,
-  beforeChild: LayoutNode,
-) {
-  detachChild(database, child);
-
-  const beforeIndex = parent.childIds.indexOf(beforeChild.id);
-  if (beforeIndex === -1) {
-    parent.childIds.push(child.id);
-  } else {
-    parent.childIds.splice(beforeIndex, 0, child.id);
-  }
-
-  child.parentId = parent.id;
-  const yogaIndex = parent.childIds.indexOf(child.id);
-  parent.yogaNode.insertChild(child.yogaNode, yogaIndex);
-}
-
-function setTextMeasureFunc(node: LayoutNode, props: TextNodeProps) {
-  const content = props.content ?? "";
-  const wrapMode: WrapMode = props.wrap ? "wrap" : "nowrap";
-
-  node.yogaNode.setMeasureFunc((maxWidth, widthMode) => {
-    // MeasureMode.Undefined = 0
-    const width = widthMode === 0 ? Infinity : maxWidth;
-    const measured = measureText(content, wrapMode, width);
-    return { width: measured.width, height: measured.height };
-  });
-
-  // Mark the node dirty so Yoga knows to re-measure
-  if (node.yogaNode.getChildCount() === 0) {
-    node.yogaNode.markDirty();
-  }
 }

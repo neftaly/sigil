@@ -10,6 +10,7 @@ import {
   dispatchPointerEvent,
   dispatchTextUpdateEvent,
   focusAndDispatch,
+  isNavigationKey,
   releasePointerCapture,
 } from "@charui/core";
 
@@ -18,29 +19,6 @@ import { pixelToGrid } from "./dom.ts";
 export interface InputBindings {
   dispose: () => void;
   sync: (text: string, selectionStart: number, selectionEnd: number) => void;
-}
-
-/**
- * Returns true if the key event is a navigation/modifier key that should
- * go through dispatchKeyEvent rather than being handled by EditContext.
- */
-function isNavigationKey(e: KeyboardEvent): boolean {
-  switch (e.key) {
-    case "ArrowLeft":
-    case "ArrowRight":
-    case "ArrowUp":
-    case "ArrowDown":
-    case "Home":
-    case "End":
-    case "Tab":
-    case "Escape":
-    case "Enter":
-      return true;
-    default:
-      // Modifier combos (Ctrl+C, Ctrl+V, etc.) — let EditContext handle
-      // Ctrl+A, Ctrl+Z etc. but dispatch as key events too for custom handling
-      return false;
-  }
 }
 
 /**
@@ -211,7 +189,7 @@ export function bindInput(
   // --- Keyboard events (navigation keys only) ---
 
   function handleKeyEvent(domEvent: KeyboardEvent, type: KeyEvent["type"]) {
-    if (!isNavigationKey(domEvent)) {
+    if (!isNavigationKey(domEvent.key)) {
       return;
     }
     const event: KeyEvent = {

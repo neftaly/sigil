@@ -466,3 +466,24 @@ export function dispatchTextUpdateEvent(
     fireHandler(path[i], "onTextUpdate", event);
   }
 }
+
+/**
+ * Returns true if the key is a navigation/modifier key that should
+ * go through dispatchKeyEvent rather than being handled by EditContext.
+ */
+export function isNavigationKey(key: string): boolean {
+  switch (key) {
+    case "ArrowLeft":
+    case "ArrowRight":
+    case "ArrowUp":
+    case "ArrowDown":
+    case "Home":
+    case "End":
+    case "Tab":
+    case "Escape":
+    case "Enter":
+      return true;
+    default:
+      return false;
+  }
+}

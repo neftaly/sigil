@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { Cell } from "./cell.ts";
+import { gridToString } from "./cell.ts";
 import {
   addNode,
   computeLayout,
@@ -8,18 +8,6 @@ import {
   removeNode,
 } from "./database.ts";
 import { rasterize } from "./rasterize.ts";
-
-/** Inline helper to avoid cyclic dep on @charui/test-utils */
-function gridToString(grid: Cell[][]): string {
-  return grid
-    .map((row) =>
-      row
-        .filter((cell) => !cell.continuation)
-        .map((cell) => cell.char)
-        .join(""),
-    )
-    .join("\n");
-}
 
 describe("rasterize", () => {
   it("renders a box with a single border", () => {

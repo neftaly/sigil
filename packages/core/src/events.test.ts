@@ -4,11 +4,14 @@ import { addNode, computeLayout, createDatabase } from "./database.ts";
 import {
   type KeyEvent,
   type PointerEvent,
+  type TextUpdateEvent,
   createEventState,
   dispatchKeyEvent,
   dispatchPointerEvent,
+  dispatchTextUpdateEvent,
   focusRelative,
   hitTest,
+  isNavigationKey,
   releasePointerCapture,
   setFocus,
   setPointerCapture,
@@ -383,5 +386,119 @@ describe("focus", () => {
     dispatchKeyEvent(database, state, event);
 
     expect(order).toEqual(["root-capture", "left-keydown", "root-keydown"]);
+  });
+});
+
+describe("isNavigationKey", () => {
+  it("returns true for arrow keys", () => {
+    expect(isNavigationKey("ArrowLeft")).toBe(true);
+    expect(isNavigationKey("ArrowRight")).toBe(true);
+    expect(isNavigationKey("ArrowUp")).toBe(true);
+    expect(isNavigationKey("ArrowDown")).toBe(true);
+  });
+
+  it("returns true for Home, End, Tab, Escape, Enter", () => {
+    expect(isNavigationKey("Home")).toBe(true);
+    expect(isNavigationKey("End")).toBe(true);
+    expect(isNavigationKey("Tab")).toBe(true);
+    expect(isNavigationKey("Escape")).toBe(true);
+    expect(isNavigationKey("Enter")).toBe(true);
+  });
+
+  it("returns false for printable characters", () => {
+    expect(isNavigationKey("a")).toBe(false);
+    expect(isNavigationKey("Z")).toBe(false);
+    expect(isNavigationKey("1")).toBe(false);
+    expect(isNavigationKey(" ")).toBe(false);
+  });
+
+  it("returns false for modifier keys", () => {
+    expect(isNavigationKey("Shift")).toBe(false);
+    expect(isNavigationKey("Control")).toBe(false);
+    expect(isNavigationKey("Alt")).toBe(false);
+    expect(isNavigationKey("Meta")).toBe(false);
+  });
+
+  it("returns false for other special keys", () => {
+    expect(isNavigationKey("Backspace")).toBe(false);
+    expect(isNavigationKey("Delete")).toBe(false);
+    expect(isNavigationKey("F1")).toBe(false);
+  });
+});
+
+describe("dispatchTextUpdateEvent", () => {
+  it("dispatches to focused node with capture and bubble", () => {
+    const { database, root, left } = setupTree();
+    const state = createEventState();
+
+    left.props.focusable = true;
+    setFocus(database, state, "left");
+
+    const order: string[] = [];
+    root.props.onTextUpdateCapture = () => {
+      order.push("root-capture");
+    };
+    left.props.onTextUpdateCapture = () => {
+      order.push("left-capture");
+    };
+    left.props.onTextUpdate = () => {
+      order.push("left-bubble");
+    };
+    root.props.onTextUpdate = () => {
+      order.push("root-bubble");
+    };
+
+    const event: TextUpdateEvent = {
+      type: "textupdate",
+      text: "hello",
+      updateRangeStart: 0,
+      updateRangeEnd: 0,
+      selectionStart: 5,
+      selectionEnd: 5,
+    };
+    dispatchTextUpdateEvent(database, state, event);
+
+    expect(order).toEqual([
+      "root-capture",
+      "left-capture",
+      "left-bubble",
+      "root-bubble",
+    ]);
+  });
+
+  it("does nothing when no node is focused", () => {
+    const { database, left } = setupTree();
+    const state = createEventState();
+
+    const handler = vi.fn();
+    left.props.onTextUpdate = handler;
+
+    dispatchTextUpdateEvent(database, state, {
+      type: "textupdate",
+      text: "hello",
+      updateRangeStart: 0,
+      updateRangeEnd: 0,
+      selectionStart: 5,
+      selectionEnd: 5,
+    });
+
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("does nothing when focused node no longer exists", () => {
+    const { database } = setupTree();
+    const state = createEventState();
+
+    state.focusedId = "nonexistent";
+
+    // Should not throw
+    dispatchTextUpdateEvent(database, state, {
+      type: "textupdate",
+      text: "hello",
+      updateRangeStart: 0,
+      updateRangeEnd: 0,
+      selectionStart: 5,
+      selectionEnd: 5,
+    });
   });
 });

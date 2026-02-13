@@ -7,7 +7,7 @@ import {
   createDatabase,
   removeNode,
 } from "./database.ts";
-import { rasterize } from "./rasterize.ts";
+import { rasterize, rasterizeOne } from "./rasterize.ts";
 
 describe("rasterize", () => {
   it("renders a box with a single border", () => {
@@ -267,5 +267,128 @@ describe("rasterize", () => {
     computeLayout(database, 5, 1);
     const grid = rasterize(database, 5, 1);
     expect(gridToString(grid)).toBe("     ");
+  });
+});
+
+describe("rasterizeOne", () => {
+  it("renders a single bordered box", () => {
+    const database = createDatabase();
+
+    const root = addNode(database, {
+      id: "root",
+      type: "box",
+      props: { border: true },
+      parentId: null,
+    });
+    root.yogaNode.setWidth(8);
+    root.yogaNode.setHeight(3);
+    root.yogaNode.setBorder(database.yoga.EDGE_ALL, 1);
+
+    computeLayout(database, 8, 3);
+    const grid = rasterizeOne(database, "root");
+
+    expect(grid).not.toBeNull();
+    expect(gridToString(grid!)).toBe(
+      ["┌──────┐", "│      │", "└──────┘"].join("\n"),
+    );
+  });
+
+  it("renders text node content", () => {
+    const database = createDatabase();
+
+    const root = addNode(database, {
+      id: "root",
+      type: "box",
+      props: {},
+      parentId: null,
+    });
+    root.yogaNode.setWidth(10);
+    root.yogaNode.setHeight(1);
+
+    const text = addNode(database, {
+      id: "text",
+      type: "text",
+      props: { content: "Hello" },
+      parentId: "root",
+    });
+    text.yogaNode.setHeight(1);
+
+    computeLayout(database, 10, 1);
+    const grid = rasterizeOne(database, "text");
+
+    expect(grid).not.toBeNull();
+    expect(gridToString(grid!)).toBe("Hello     ");
+  });
+
+  it("does not include children", () => {
+    const database = createDatabase();
+
+    const root = addNode(database, {
+      id: "root",
+      type: "box",
+      props: { border: true },
+      parentId: null,
+    });
+    root.yogaNode.setWidth(10);
+    root.yogaNode.setHeight(3);
+    root.yogaNode.setBorder(database.yoga.EDGE_ALL, 1);
+
+    const text = addNode(database, {
+      id: "text",
+      type: "text",
+      props: { content: "Hi" },
+      parentId: "root",
+    });
+    text.yogaNode.setHeight(1);
+
+    computeLayout(database, 10, 3);
+    const grid = rasterizeOne(database, "root");
+
+    // Should only have the border, not the child text
+    expect(grid).not.toBeNull();
+    expect(gridToString(grid!)).toBe(
+      ["┌────────┐", "│        │", "└────────┘"].join("\n"),
+    );
+  });
+
+  it("returns null for missing node", () => {
+    const database = createDatabase();
+    const grid = rasterizeOne(database, "nonexistent");
+    expect(grid).toBeNull();
+  });
+
+  it("returns null for node without bounds", () => {
+    const database = createDatabase();
+
+    addNode(database, {
+      id: "root",
+      type: "box",
+      props: {},
+      parentId: null,
+    });
+    // Don't compute layout — bounds are null
+
+    const grid = rasterizeOne(database, "root");
+    expect(grid).toBeNull();
+  });
+
+  it("grid dimensions match node bounds", () => {
+    const database = createDatabase();
+
+    const root = addNode(database, {
+      id: "root",
+      type: "box",
+      props: {},
+      parentId: null,
+    });
+    root.yogaNode.setWidth(7);
+    root.yogaNode.setHeight(4);
+
+    computeLayout(database, 7, 4);
+    const grid = rasterizeOne(database, "root");
+
+    expect(grid).not.toBeNull();
+    expect(grid!.length).toBe(4);
+    expect(grid![0].length).toBe(7);
   });
 });

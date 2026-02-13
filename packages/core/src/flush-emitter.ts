@@ -18,11 +18,13 @@ export interface FlushEmitter {
 export function createFlushEmitter(): FlushEmitter {
   const listeners = new Set<(snapshot: FlushSnapshot) => void>();
   let emitting = false;
+  let latest: FlushSnapshot | null = null;
   return {
     emit(snapshot) {
       if (emitting) {
         return;
       }
+      latest = snapshot;
       emitting = true;
       try {
         for (const listener of [...listeners]) {
@@ -34,6 +36,9 @@ export function createFlushEmitter(): FlushEmitter {
     },
     subscribe(callback) {
       listeners.add(callback);
+      if (latest) {
+        callback(latest);
+      }
       return () => listeners.delete(callback);
     },
   };

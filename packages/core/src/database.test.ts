@@ -1,10 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   addNode,
   computeLayout,
   createDatabase,
   removeNode,
+  subscribe,
+  updateNode,
 } from "./database.ts";
 
 describe("createDatabase", () => {
@@ -111,5 +113,84 @@ describe("computeLayout", () => {
 
     computeLayout(database, 20, 10);
     expect(notified).toBe(true);
+  });
+});
+
+describe("updateNode", () => {
+  it("merges new props into existing node", () => {
+    const database = createDatabase();
+    addNode(database, {
+      id: "root",
+      type: "text",
+      props: { content: "hello" },
+      parentId: null,
+    });
+
+    updateNode(database, "root", { content: "world" });
+    expect(database.nodes.get("root")!.props).toEqual({ content: "world" });
+  });
+
+  it("preserves existing props not in the update", () => {
+    const database = createDatabase();
+    addNode(database, {
+      id: "root",
+      type: "box",
+      props: { color: "#f00", border: true },
+      parentId: null,
+    });
+
+    updateNode(database, "root", { color: "#0f0" });
+    const props = database.nodes.get("root")!.props;
+    expect(props.color).toBe("#0f0");
+    expect((props as any).border).toBe(true);
+  });
+
+  it("is a no-op for missing node", () => {
+    const database = createDatabase();
+    expect(() =>
+      updateNode(database, "missing", { content: "x" }),
+    ).not.toThrow();
+  });
+});
+
+describe("subscribe", () => {
+  it("calls listener on computeLayout", () => {
+    const database = createDatabase();
+    addNode(database, { id: "root", type: "box", props: {}, parentId: null });
+
+    const listener = vi.fn();
+    subscribe(database, listener);
+
+    computeLayout(database, 10, 10);
+    expect(listener).toHaveBeenCalledOnce();
+  });
+
+  it("unsubscribe stops notifications", () => {
+    const database = createDatabase();
+    addNode(database, { id: "root", type: "box", props: {}, parentId: null });
+
+    const listener = vi.fn();
+    const unsub = subscribe(database, listener);
+
+    computeLayout(database, 10, 10);
+    expect(listener).toHaveBeenCalledOnce();
+
+    unsub();
+    computeLayout(database, 10, 10);
+    expect(listener).toHaveBeenCalledOnce();
+  });
+
+  it("multiple subscribers all receive notifications", () => {
+    const database = createDatabase();
+    addNode(database, { id: "root", type: "box", props: {}, parentId: null });
+
+    const a = vi.fn();
+    const b = vi.fn();
+    subscribe(database, a);
+    subscribe(database, b);
+
+    computeLayout(database, 10, 10);
+    expect(a).toHaveBeenCalledOnce();
+    expect(b).toHaveBeenCalledOnce();
   });
 });

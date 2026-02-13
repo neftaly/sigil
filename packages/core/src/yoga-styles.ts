@@ -1,128 +1,128 @@
-import type { Database, LayoutNode } from "./database.ts";
+import yoga from "yoga-layout";
+
+import type { LayoutNode } from "./database.ts";
 import type { LayoutProps, NodeProps } from "./types.ts";
+
+const FLEX_DIRECTION_MAP = {
+  row: yoga.FLEX_DIRECTION_ROW,
+  column: yoga.FLEX_DIRECTION_COLUMN,
+  "row-reverse": yoga.FLEX_DIRECTION_ROW_REVERSE,
+  "column-reverse": yoga.FLEX_DIRECTION_COLUMN_REVERSE,
+} satisfies Record<string, number>;
+
+const ALIGN_MAP = {
+  "flex-start": yoga.ALIGN_FLEX_START,
+  center: yoga.ALIGN_CENTER,
+  "flex-end": yoga.ALIGN_FLEX_END,
+  stretch: yoga.ALIGN_STRETCH,
+} satisfies Record<string, number>;
+
+const JUSTIFY_MAP = {
+  "flex-start": yoga.JUSTIFY_FLEX_START,
+  center: yoga.JUSTIFY_CENTER,
+  "flex-end": yoga.JUSTIFY_FLEX_END,
+  "space-between": yoga.JUSTIFY_SPACE_BETWEEN,
+  "space-around": yoga.JUSTIFY_SPACE_AROUND,
+  "space-evenly": yoga.JUSTIFY_SPACE_EVENLY,
+} satisfies Record<string, number>;
 
 /**
  * Apply layout props to a Yoga node.
  * Pure layout logic -- no React dependency.
  * Accepts any NodeProps; non-layout props are ignored.
  */
-export function applyYogaStyles(
-  database: Database,
-  node: LayoutNode,
-  props: NodeProps,
-) {
+export function applyYogaStyles(node: LayoutNode, props: NodeProps) {
   const { yogaNode } = node;
-  const { yoga } = database;
 
   // Safe to access layout fields: TextNodeProps simply won't have them.
-  const lp = props as Partial<LayoutProps>;
+  const layoutProps = props as Partial<LayoutProps>;
 
-  if (lp.width !== undefined) {
-    yogaNode.setWidth(lp.width);
+  if (layoutProps.width !== undefined) {
+    yogaNode.setWidth(layoutProps.width);
   }
-  if (lp.height !== undefined) {
-    yogaNode.setHeight(lp.height);
+  if (layoutProps.height !== undefined) {
+    yogaNode.setHeight(layoutProps.height);
   }
-  if (lp.minWidth !== undefined) {
-    yogaNode.setMinWidth(lp.minWidth);
+  if (layoutProps.minWidth !== undefined) {
+    yogaNode.setMinWidth(layoutProps.minWidth);
   }
-  if (lp.minHeight !== undefined) {
-    yogaNode.setMinHeight(lp.minHeight);
+  if (layoutProps.minHeight !== undefined) {
+    yogaNode.setMinHeight(layoutProps.minHeight);
   }
-  if (lp.maxWidth !== undefined) {
-    yogaNode.setMaxWidth(lp.maxWidth);
+  if (layoutProps.maxWidth !== undefined) {
+    yogaNode.setMaxWidth(layoutProps.maxWidth);
   }
-  if (lp.maxHeight !== undefined) {
-    yogaNode.setMaxHeight(lp.maxHeight);
+  if (layoutProps.maxHeight !== undefined) {
+    yogaNode.setMaxHeight(layoutProps.maxHeight);
   }
 
-  if (lp.flexGrow !== undefined) {
-    yogaNode.setFlexGrow(lp.flexGrow);
+  if (layoutProps.flexGrow !== undefined) {
+    yogaNode.setFlexGrow(layoutProps.flexGrow);
   }
-  if (lp.flexShrink !== undefined) {
-    yogaNode.setFlexShrink(lp.flexShrink);
+  if (layoutProps.flexShrink !== undefined) {
+    yogaNode.setFlexShrink(layoutProps.flexShrink);
   }
-  if (lp.flexBasis !== undefined) {
-    yogaNode.setFlexBasis(lp.flexBasis);
+  if (layoutProps.flexBasis !== undefined) {
+    yogaNode.setFlexBasis(layoutProps.flexBasis);
   }
-  if (lp.flexDirection !== undefined) {
-    const directionMap: Record<string, number> = {
-      row: yoga.FLEX_DIRECTION_ROW,
-      column: yoga.FLEX_DIRECTION_COLUMN,
-      "row-reverse": yoga.FLEX_DIRECTION_ROW_REVERSE,
-      "column-reverse": yoga.FLEX_DIRECTION_COLUMN_REVERSE,
-    };
-    const direction = directionMap[lp.flexDirection];
+  if (layoutProps.flexDirection !== undefined) {
+    const direction = FLEX_DIRECTION_MAP[layoutProps.flexDirection];
     if (direction !== undefined) {
       yogaNode.setFlexDirection(direction);
     }
   }
 
-  if (lp.alignItems !== undefined) {
-    const alignMap: Record<string, number> = {
-      "flex-start": yoga.ALIGN_FLEX_START,
-      center: yoga.ALIGN_CENTER,
-      "flex-end": yoga.ALIGN_FLEX_END,
-      stretch: yoga.ALIGN_STRETCH,
-    };
-    const align = alignMap[lp.alignItems];
+  if (layoutProps.alignItems !== undefined) {
+    const align = ALIGN_MAP[layoutProps.alignItems];
     if (align !== undefined) {
       yogaNode.setAlignItems(align);
     }
   }
 
-  if (lp.justifyContent !== undefined) {
-    const justifyMap: Record<string, number> = {
-      "flex-start": yoga.JUSTIFY_FLEX_START,
-      center: yoga.JUSTIFY_CENTER,
-      "flex-end": yoga.JUSTIFY_FLEX_END,
-      "space-between": yoga.JUSTIFY_SPACE_BETWEEN,
-      "space-around": yoga.JUSTIFY_SPACE_AROUND,
-      "space-evenly": yoga.JUSTIFY_SPACE_EVENLY,
-    };
-    const justify = justifyMap[lp.justifyContent];
+  if (layoutProps.justifyContent !== undefined) {
+    const justify = JUSTIFY_MAP[layoutProps.justifyContent];
     if (justify !== undefined) {
       yogaNode.setJustifyContent(justify);
     }
   }
 
-  if (lp.padding !== undefined) {
-    yogaNode.setPadding(yoga.EDGE_ALL, lp.padding);
+  if (layoutProps.padding !== undefined) {
+    yogaNode.setPadding(yoga.EDGE_ALL, layoutProps.padding);
   }
-  if (lp.paddingTop !== undefined) {
-    yogaNode.setPadding(yoga.EDGE_TOP, lp.paddingTop);
+  if (layoutProps.paddingTop !== undefined) {
+    yogaNode.setPadding(yoga.EDGE_TOP, layoutProps.paddingTop);
   }
-  if (lp.paddingBottom !== undefined) {
-    yogaNode.setPadding(yoga.EDGE_BOTTOM, lp.paddingBottom);
+  if (layoutProps.paddingBottom !== undefined) {
+    yogaNode.setPadding(yoga.EDGE_BOTTOM, layoutProps.paddingBottom);
   }
-  if (lp.paddingLeft !== undefined) {
-    yogaNode.setPadding(yoga.EDGE_LEFT, lp.paddingLeft);
+  if (layoutProps.paddingLeft !== undefined) {
+    yogaNode.setPadding(yoga.EDGE_LEFT, layoutProps.paddingLeft);
   }
-  if (lp.paddingRight !== undefined) {
-    yogaNode.setPadding(yoga.EDGE_RIGHT, lp.paddingRight);
-  }
-
-  if (lp.margin !== undefined) {
-    yogaNode.setMargin(yoga.EDGE_ALL, lp.margin);
+  if (layoutProps.paddingRight !== undefined) {
+    yogaNode.setPadding(yoga.EDGE_RIGHT, layoutProps.paddingRight);
   }
 
-  if (lp.border) {
+  if (layoutProps.margin !== undefined) {
+    yogaNode.setMargin(yoga.EDGE_ALL, layoutProps.margin);
+  }
+
+  if (layoutProps.border) {
     yogaNode.setBorder(yoga.EDGE_ALL, 1);
   }
 
-  if (lp.position === "absolute") {
+  if (layoutProps.position === "absolute") {
     yogaNode.setPositionType(yoga.POSITION_TYPE_ABSOLUTE);
-    if (lp.top !== undefined) {
-      yogaNode.setPosition(yoga.EDGE_TOP, lp.top);
+    if (layoutProps.top !== undefined) {
+      yogaNode.setPosition(yoga.EDGE_TOP, layoutProps.top);
     }
-    if (lp.left !== undefined) {
-      yogaNode.setPosition(yoga.EDGE_LEFT, lp.left);
+    if (layoutProps.left !== undefined) {
+      yogaNode.setPosition(yoga.EDGE_LEFT, layoutProps.left);
     }
-    if (lp.right !== undefined) {
-      yogaNode.setPosition(yoga.EDGE_RIGHT, lp.right);
+    if (layoutProps.right !== undefined) {
+      yogaNode.setPosition(yoga.EDGE_RIGHT, layoutProps.right);
     }
-    if (lp.bottom !== undefined) {
-      yogaNode.setPosition(yoga.EDGE_BOTTOM, lp.bottom);
+    if (layoutProps.bottom !== undefined) {
+      yogaNode.setPosition(yoga.EDGE_BOTTOM, layoutProps.bottom);
     }
   }
 }

@@ -1,6 +1,16 @@
-export { type Cell, type CellStyle, createGrid } from "./cell.ts";
+export {
+  type Cell,
+  type CellSpan,
+  type CellStyle,
+  groupCells,
+  styleEquals,
+  gridToString,
+  gridWidth,
+  createGrid,
+} from "./cell.ts";
 export {
   type Bounds,
+  type NodeType,
   type LayoutNode,
   type Database,
   createDatabase,
@@ -17,18 +27,20 @@ export {
   type PointerEvent,
   type KeyEvent,
   type FocusEvent,
-  type CharuiEvent,
+  type TextUpdateEvent,
   type EventState,
   createEventState,
   hitTest,
   setFocus,
   findFocusable,
-  focusNext,
-  focusPrev,
+  focusRelative,
   setPointerCapture,
   releasePointerCapture,
+  setHoveredNode,
+  focusAndDispatch,
   dispatchPointerEvent,
   dispatchKeyEvent,
+  dispatchTextUpdateEvent,
 } from "./events.ts";
 export {
   type NodeProps,
@@ -40,3 +52,19 @@ export {
 } from "./types.ts";
 export { applyYogaStyles } from "./yoga-styles.ts";
 export { parseColor } from "./color.ts";
+export {
+  type FlushSnapshot,
+  type FlushEmitter,
+  createFlushEmitter,
+} from "./flush-emitter.ts";
+export {
+  type GridRange,
+  type StyleTransform,
+  type Overlay,
+  type OverlayState,
+  createOverlayState,
+  setOverlay,
+  removeOverlay,
+  applyOverlays,
+  applyOverlaysToNodeGrid,
+} from "./overlays.ts";

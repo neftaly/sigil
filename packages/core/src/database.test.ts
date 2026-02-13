@@ -8,11 +8,10 @@ import {
 } from "./database.ts";
 
 describe("createDatabase", () => {
-  it("initializes with empty nodes and version 0", () => {
+  it("initializes with empty nodes", () => {
     const database = createDatabase();
     expect(database.nodes.size).toBe(0);
     expect(database.rootId).toBeNull();
-    expect(database.version).toBe(0);
   });
 });
 
@@ -98,18 +97,7 @@ describe("computeLayout", () => {
     computeLayout(database, 20, 10);
 
     const root = database.nodes.get("root");
-    expect(root?.bounds).toEqual({ x: 0, y: 0, w: 20, h: 10 });
-  });
-
-  it("bumps version on compute", () => {
-    const database = createDatabase();
-    addNode(database, { id: "root", type: "box", props: {}, parentId: null });
-
-    expect(database.version).toBe(0);
-    computeLayout(database, 20, 10);
-    expect(database.version).toBe(1);
-    computeLayout(database, 20, 10);
-    expect(database.version).toBe(2);
+    expect(root?.bounds).toEqual({ x: 0, y: 0, width: 20, height: 10 });
   });
 
   it("notifies listeners on compute", () => {

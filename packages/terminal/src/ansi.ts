@@ -1,4 +1,9 @@
-import { type Cell, type CellStyle, parseColor } from "@charui/core";
+import {
+  type Cell,
+  type CellStyle,
+  groupCells,
+  parseColor,
+} from "@charui/core";
 
 function styleToAnsi(style: CellStyle): string {
   const codes: string[] = [];
@@ -28,46 +33,35 @@ function styleToAnsi(style: CellStyle): string {
   return codes.join("");
 }
 
-function styleEquals(a: CellStyle, b: CellStyle): boolean {
+function hasAnyStyling(style: CellStyle): boolean {
   return (
-    a.fg === b.fg &&
-    a.bg === b.bg &&
-    a.bold === b.bold &&
-    a.italic === b.italic &&
-    a.underline === b.underline
+    style.fg !== undefined ||
+    style.bg !== undefined ||
+    Boolean(style.bold) ||
+    Boolean(style.italic) ||
+    Boolean(style.underline)
   );
 }
 
 function rowToAnsi(row: Cell[]): string {
+  const spans = groupCells(row);
   let line = "";
-  let currentStyle: CellStyle | null = null;
+  let styled = false;
 
-  for (const cell of row) {
-    if (cell.continuation) {
-      // Skip continuation cells (wide chars)
-    } else {
-      const hasStyle =
-        cell.style.fg !== undefined ||
-        cell.style.bg !== undefined ||
-        cell.style.bold ||
-        cell.style.italic ||
-        cell.style.underline;
-
-      if (!currentStyle || !styleEquals(currentStyle, cell.style)) {
-        if (currentStyle) {
-          line += "\x1b[0m";
-        }
-        if (hasStyle) {
-          line += styleToAnsi(cell.style);
-        }
-        currentStyle = hasStyle ? cell.style : null;
-      }
-
-      line += cell.char;
+  for (const span of spans) {
+    const needsStyle = hasAnyStyling(span.style);
+    if (styled) {
+      line += "\x1b[0m";
+      styled = false;
     }
+    if (needsStyle) {
+      line += styleToAnsi(span.style);
+      styled = true;
+    }
+    line += span.text;
   }
 
-  if (currentStyle) {
+  if (styled) {
     line += "\x1b[0m";
   }
 

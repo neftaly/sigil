@@ -1,14 +1,25 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { Preview } from "@storybook/react";
-import type { Cell, Database } from "@charui/core";
-import { DatabaseReporterContext } from "@charui/dom";
-import { toAnsi } from "@charui/terminal";
+import type {
+  Cell,
+  Database,
+  EventState,
+  OverlayState,
+  PointerEvent as CharuiPointerEvent,
+} from "@charui/core";
+import {
+  type FlushSnapshot,
+  createFlushEmitter,
+  dispatchPointerEvent,
+  focusAndDispatch,
+  releasePointerCapture,
+} from "@charui/core";
+import { FlushEmitterContext } from "@charui/dom";
+import {
+  parseSGRMouse,
+  syncSelectionToTerminal,
+  toAnsi,
+} from "@charui/terminal";
 import { ExplodedScene, type FontSet } from "@charui/threedee";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
@@ -118,13 +129,23 @@ function useIsWide(breakpoint = 900): boolean {
 
 function TerminalPane({
   grid,
+  overlayState,
+  database,
+  eventState,
   fontFamily,
 }: {
   grid: Cell[][] | null;
+  overlayState: OverlayState | null;
+  database: Database | null;
+  eventState: EventState | null;
   fontFamily: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
+  const dbRef = useRef(database);
+  const esRef = useRef(eventState);
+  dbRef.current = database;
+  esRef.current = eventState;
 
   useEffect(() => {
     if (!containerRef.current) {
@@ -133,7 +154,6 @@ function TerminalPane({
     const term = new Terminal({
       fontSize: 14,
       fontFamily,
-      disableStdin: true,
       cursorStyle: "bar",
       cursorBlink: false,
       allowTransparency: true,
@@ -144,7 +164,49 @@ function TerminalPane({
     term.open(containerRef.current);
     termRef.current = term;
 
+    // Enable SGR extended mouse reporting (any-event tracking)
+    term.write("\x1b[?1003h\x1b[?1006h");
+
+    const dataDisposable = term.onData((data) => {
+      const db = dbRef.current;
+      const es = esRef.current;
+      if (!db || !es) {
+        return;
+      }
+
+      const mouse = parseSGRMouse(data);
+      if (!mouse) {
+        return;
+      }
+
+      const event: CharuiPointerEvent = {
+        type: mouse.type,
+        col: mouse.col,
+        row: mouse.row,
+        button: mouse.button,
+        shiftKey: false,
+      };
+
+      if (mouse.type === "pointerdown") {
+        // Guard: release stale capture from a missed pointerup
+        if (es.capturedNodeId) {
+          releasePointerCapture(es);
+        }
+        focusAndDispatch(db, es, event);
+      } else {
+        dispatchPointerEvent(db, es, event);
+      }
+
+      if (
+        (mouse.type === "pointerup" || mouse.type === "pointercancel") &&
+        es.capturedNodeId
+      ) {
+        releasePointerCapture(es);
+      }
+    });
+
     return () => {
+      dataDisposable.dispose();
       term.dispose();
       termRef.current = null;
     };
@@ -157,9 +219,10 @@ function TerminalPane({
     const cols = grid[0]?.length ?? 80;
     const rows = grid.length;
     termRef.current.resize(cols, rows);
-    termRef.current.reset();
-    termRef.current.write(toAnsi(grid));
-  }, [grid]);
+    // Move cursor to top-left and overwrite in place (no reset to avoid flicker)
+    termRef.current.write(`\x1b[H${toAnsi(grid)}`);
+    syncSelectionToTerminal(termRef.current, overlayState);
+  }, [grid, overlayState]);
 
   return (
     <div
@@ -177,7 +240,15 @@ function TerminalPane({
   );
 }
 
-function ThreeDeePane({ db, fonts }: { db: Database | null; fonts: FontSet }) {
+function ThreeDeePane({
+  db,
+  overlayState,
+  fonts,
+}: {
+  db: Database | null;
+  overlayState: OverlayState | null;
+  fonts: FontSet;
+}) {
   if (!db) {
     return (
       <div
@@ -193,7 +264,13 @@ function ThreeDeePane({ db, fonts }: { db: Database | null; fonts: FontSet }) {
       </div>
     );
   }
-  return <ExplodedScene database={db} fonts={fonts} />;
+  return (
+    <ExplodedScene
+      database={db}
+      overlayState={overlayState ?? undefined}
+      fonts={fonts}
+    />
+  );
 }
 
 function TriPaneDecorator({
@@ -206,7 +283,9 @@ function TriPaneDecorator({
   const isWide = useIsWide();
   const dbRef = useRef<Database | null>(null);
   const gridRef = useRef<Cell[][] | null>(null);
-  const [, setTick] = useState(0);
+  const overlayRef = useRef<OverlayState | null>(null);
+  const eventStateRef = useRef<EventState | null>(null);
+  const [tick, setTick] = useState(0);
 
   const config = FONTS[fontKey] ?? FONTS.hack;
 
@@ -214,13 +293,17 @@ function TriPaneDecorator({
     loadFontFaces(fontKey);
   }, [fontKey]);
 
-  const report = useCallback((db: Database, grid: Cell[][]) => {
-    dbRef.current = db;
-    gridRef.current = grid;
-    setTick((t) => t + 1);
-  }, []);
+  const [emitter] = useState(createFlushEmitter);
 
-  const reporterValue = useMemo(() => ({ report }), [report]);
+  useEffect(() => {
+    return emitter.subscribe((snapshot: FlushSnapshot) => {
+      dbRef.current = snapshot.database;
+      gridRef.current = snapshot.grid;
+      overlayRef.current = snapshot.overlayState;
+      eventStateRef.current = snapshot.eventState;
+      setTick((t) => t + 1);
+    });
+  }, [emitter]);
 
   const paneStyle: React.CSSProperties = {
     flex: 1,
@@ -267,19 +350,29 @@ function TriPaneDecorator({
         }}
       >
         <span style={labelStyle}>dom</span>
-        <DatabaseReporterContext.Provider value={reporterValue}>
+        <FlushEmitterContext.Provider value={emitter}>
           {children}
-        </DatabaseReporterContext.Provider>
+        </FlushEmitterContext.Provider>
       </div>
       <div style={separatorStyle} />
       <div style={{ ...paneStyle, position: "relative" }}>
         <span style={labelStyle}>xterm</span>
-        <TerminalPane grid={gridRef.current} fontFamily={config.family} />
+        <TerminalPane
+          grid={gridRef.current}
+          overlayState={overlayRef.current}
+          database={dbRef.current}
+          eventState={eventStateRef.current}
+          fontFamily={config.family}
+        />
       </div>
       <div style={separatorStyle} />
       <div style={{ ...paneStyle, position: "relative" }}>
         <span style={labelStyle}>three.js</span>
-        <ThreeDeePane db={dbRef.current} fonts={config.fonts} />
+        <ThreeDeePane
+          db={dbRef.current}
+          overlayState={overlayRef.current}
+          fonts={config.fonts}
+        />
       </div>
     </div>
   );

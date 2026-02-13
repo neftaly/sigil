@@ -1,7 +1,8 @@
-import { useCallback, useRef, useState } from "react";
+import { type RefObject, useCallback, useRef, useState } from "react";
 
 import {
   type EventState,
+  type LayoutNode,
   type PointerEvent,
   releasePointerCapture,
   setPointerCapture,
@@ -15,12 +16,13 @@ export interface ResizeState {
     onPointerDown: (event: PointerEvent) => void;
     onPointerMove: (event: PointerEvent) => void;
     onPointerUp: (event: PointerEvent) => void;
+    onPointerCancel: (event: PointerEvent) => void;
   };
 }
 
 export interface UseResizeOptions {
   eventState: EventState;
-  nodeId: string;
+  nodeRef: RefObject<LayoutNode | null>;
   initialWidth: number;
   initialHeight: number;
   minWidth?: number;
@@ -33,7 +35,7 @@ export interface UseResizeOptions {
 export function useResize(options: UseResizeOptions): ResizeState {
   const {
     eventState,
-    nodeId,
+    nodeRef,
     initialWidth,
     initialHeight,
     minWidth = 1,
@@ -43,30 +45,40 @@ export function useResize(options: UseResizeOptions): ResizeState {
     onResize,
   } = options;
 
-  const [isResizing, setIsResizing] = useState(false);
   const [size, setSize] = useState({
     width: initialWidth,
     height: initialHeight,
   });
+
+  // Use refs for state read by event handlers to avoid stale closures.
+  // React batches state updates, so DOM events can fire before the
+  // reconciler commits new props with updated callbacks.
+  const resizingRef = useRef(false);
+  const sizeRef = useRef(size);
+  sizeRef.current = size;
   const startRef = useRef({ col: 0, row: 0, width: 0, height: 0 });
 
   const onPointerDown = useCallback(
     (event: PointerEvent) => {
+      const id = nodeRef.current?.id;
+      if (!id) {
+        return;
+      }
       startRef.current = {
         col: event.col,
         row: event.row,
-        width: size.width,
-        height: size.height,
+        width: sizeRef.current.width,
+        height: sizeRef.current.height,
       };
-      setIsResizing(true);
-      setPointerCapture(eventState, nodeId);
+      resizingRef.current = true;
+      setPointerCapture(eventState, id);
     },
-    [eventState, nodeId, size],
+    [eventState, nodeRef],
   );
 
   const onPointerMove = useCallback(
     (event: PointerEvent) => {
-      if (!isResizing) {
+      if (!resizingRef.current) {
         return;
       }
       const deltaCol = event.col - startRef.current.col;
@@ -83,21 +95,35 @@ export function useResize(options: UseResizeOptions): ResizeState {
       setSize(newSize);
       onResize?.(newSize);
     },
-    [isResizing, minWidth, minHeight, maxWidth, maxHeight, onResize],
+    [minWidth, minHeight, maxWidth, maxHeight, onResize],
   );
 
   const onPointerUp = useCallback(() => {
-    if (!isResizing) {
+    if (!resizingRef.current) {
       return;
     }
-    setIsResizing(false);
+    resizingRef.current = false;
     releasePointerCapture(eventState);
-  }, [isResizing, eventState]);
+  }, [eventState]);
+
+  const onPointerCancel = useCallback(() => {
+    if (!resizingRef.current) {
+      return;
+    }
+    resizingRef.current = false;
+    const rollback = {
+      width: startRef.current.width,
+      height: startRef.current.height,
+    };
+    setSize(rollback);
+    releasePointerCapture(eventState);
+    onResize?.(rollback);
+  }, [eventState, onResize]);
 
   return {
-    isResizing,
+    isResizing: resizingRef.current,
     width: size.width,
     height: size.height,
-    handlers: { onPointerDown, onPointerMove, onPointerUp },
+    handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel },
   };
 }

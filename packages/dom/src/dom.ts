@@ -1,4 +1,11 @@
-import type { Cell, CellStyle } from "@charui/core";
+import {
+  type Cell,
+  type CellSpan,
+  type CellStyle,
+  type OverlayState,
+  groupCells,
+  styleEquals,
+} from "@charui/core";
 
 /**
  * Render a Cell[][] grid into a DOM container element.
@@ -11,7 +18,6 @@ export function renderToDOM(
   prevGrid: Cell[][] | null,
 ): void {
   const height = grid.length;
-  const width = grid[0]?.length ?? 0;
 
   // Ensure we have the right number of row divs
   while (container.children.length < height) {
@@ -31,10 +37,8 @@ export function renderToDOM(
     const row = grid[y];
     const prevRow = prevGrid?.[y];
 
-    // Build spans for this row
-    // Group consecutive cells with same style into single spans
-    const spans = buildSpans(row, width);
-    const prevSpans = prevRow ? buildSpans(prevRow, width) : null;
+    const spans = groupCells(row);
+    const prevSpans = prevRow ? groupCells(prevRow) : null;
 
     // Only update if row changed
     if (!prevSpans || !spansEqual(spans, prevSpans)) {
@@ -49,52 +53,16 @@ export function renderToDOM(
   }
 }
 
-interface Span {
-  text: string;
-  style: CellStyle;
-}
-
-function buildSpans(row: Cell[], width: number): Span[] {
-  const spans: Span[] = [];
-  let current: Span | null = null;
-
-  for (let x = 0; x < width; x++) {
-    const cell = row[x];
-    if (!cell.continuation) {
-      if (current && styleEquals(current.style, cell.style)) {
-        current.text += cell.char;
-      } else {
-        if (current) {
-          spans.push(current);
-        }
-        current = { text: cell.char, style: { ...cell.style } };
-      }
-    }
-  }
-
-  if (current) {
-    spans.push(current);
-  }
-
-  return spans;
-}
-
-function styleEquals(a: CellStyle, b: CellStyle): boolean {
-  return (
-    a.fg === b.fg &&
-    a.bg === b.bg &&
-    a.bold === b.bold &&
-    a.italic === b.italic &&
-    a.underline === b.underline
-  );
-}
-
-function spansEqual(a: Span[], b: Span[]): boolean {
+function spansEqual(a: CellSpan[], b: CellSpan[]): boolean {
   if (a.length !== b.length) {
     return false;
   }
   for (let i = 0; i < a.length; i++) {
-    if (a[i].text !== b[i].text || !styleEquals(a[i].style, b[i].style)) {
+    if (
+      a[i].text !== b[i].text ||
+      a[i].col !== b[i].col ||
+      !styleEquals(a[i].style, b[i].style)
+    ) {
       return false;
     }
   }
@@ -147,6 +115,89 @@ export function pixelToGrid(
   const row = Math.floor(y / cellHeight);
 
   return { col, row };
+}
+
+/**
+ * Map a grid (row, col) position to a DOM (node, offset) for Selection API.
+ * Walks the spans in the row div, summing text lengths.
+ */
+function gridToTextNode(
+  container: HTMLElement,
+  row: number,
+  col: number,
+): { node: Node; offset: number } | null {
+  const rowEl = container.children[row] as HTMLElement | undefined;
+  if (!rowEl) {
+    return null;
+  }
+
+  let accumulated = 0;
+  for (const child of rowEl.childNodes) {
+    const text = child.textContent ?? "";
+    if (accumulated + text.length > col) {
+      // col is within this span's text node
+      const textNode = child.firstChild ?? child;
+      return { node: textNode, offset: col - accumulated };
+    }
+    accumulated += text.length;
+  }
+
+  // col is at or past end of row — point to end of last span
+  const lastChild = rowEl.lastChild;
+  if (lastChild) {
+    const textNode = lastChild.firstChild ?? lastChild;
+    return { node: textNode, offset: (textNode.textContent ?? "").length };
+  }
+  return null;
+}
+
+/**
+ * Sync charui overlay selection to browser Selection API for clipboard support.
+ * Finds selection-* overlays and maps their grid ranges to DOM positions.
+ */
+export function syncSelectionToDOM(
+  container: HTMLElement,
+  overlayState: OverlayState,
+): void {
+  const selection = document.getSelection();
+  if (!selection) {
+    return;
+  }
+
+  // Find the selection overlay (if any)
+  let selectionOverlay = null;
+  for (const overlay of overlayState.overlays.values()) {
+    if (overlay.id.startsWith("selection-")) {
+      selectionOverlay = overlay;
+      break;
+    }
+  }
+
+  if (!selectionOverlay || selectionOverlay.ranges.length === 0) {
+    // No selection overlay — don't clear browser selection
+    // (user might have free-selected text outside inputs)
+    return;
+  }
+
+  const range = selectionOverlay.ranges[0];
+
+  // Only sync non-collapsed selections (cursor/caret is overlay-only)
+  if (range.startRow === range.endRow && range.endCol - range.startCol <= 0) {
+    return;
+  }
+
+  const start = gridToTextNode(container, range.startRow, range.startCol);
+  const end = gridToTextNode(container, range.endRow, range.endCol + 1);
+
+  if (!start || !end) {
+    return;
+  }
+
+  try {
+    selection.setBaseAndExtent(start.node, start.offset, end.node, end.offset);
+  } catch {
+    // Invalid range — ignore
+  }
 }
 
 /**

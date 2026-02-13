@@ -4,34 +4,43 @@ import type { EventHandlerProps } from "./types.ts";
 // --- Event types ---
 
 export interface PointerEvent {
-  type:
+  readonly type:
     | "pointerdown"
     | "pointerup"
     | "pointermove"
     | "pointerenter"
-    | "pointerleave";
-  col: number;
-  row: number;
-  button: number;
-  targetBounds?: Bounds;
+    | "pointerleave"
+    | "pointercancel";
+  readonly col: number;
+  readonly row: number;
+  readonly button: number;
+  readonly shiftKey: boolean;
+  readonly targetBounds?: Bounds;
 }
 
 export interface KeyEvent {
-  type: "keydown" | "keyup";
-  key: string;
-  code: string;
-  ctrlKey: boolean;
-  shiftKey: boolean;
-  altKey: boolean;
-  metaKey: boolean;
+  readonly type: "keydown" | "keyup";
+  readonly key: string;
+  readonly code: string;
+  readonly ctrlKey: boolean;
+  readonly shiftKey: boolean;
+  readonly altKey: boolean;
+  readonly metaKey: boolean;
 }
 
 export interface FocusEvent {
-  type: "focus" | "blur";
-  nodeId: string;
+  readonly type: "focus" | "blur";
+  readonly nodeId: string;
 }
 
-export type CharuiEvent = PointerEvent | KeyEvent | FocusEvent;
+export interface TextUpdateEvent {
+  readonly type: "textupdate";
+  readonly text: string;
+  readonly updateRangeStart: number;
+  readonly updateRangeEnd: number;
+  readonly selectionStart: number;
+  readonly selectionEnd: number;
+}
 
 // --- Event state ---
 
@@ -84,9 +93,9 @@ function hitTestNode(
   // Check if point is within this node's bounds
   if (
     col < bounds.x ||
-    col >= bounds.x + bounds.w ||
+    col >= bounds.x + bounds.width ||
     row < bounds.y ||
-    row >= bounds.y + bounds.h
+    row >= bounds.y + bounds.height
   ) {
     return null;
   }
@@ -138,32 +147,22 @@ export function setFocus(
 }
 
 /**
- * Cycle focus to the next focusable node (tab order).
- * Collects all focusable nodes via tree walk, sorts by tabIndex, cycles.
+ * Cycle focus forward (+1) or backward (-1) through focusable nodes.
  */
-export function focusNext(database: Database, state: EventState) {
+export function focusRelative(
+  database: Database,
+  state: EventState,
+  direction: 1 | -1,
+) {
   const focusable = collectFocusable(database);
   if (focusable.length === 0) {
     return;
   }
 
   const currentIndex = focusable.findIndex((n) => n.id === state.focusedId);
-  const nextIndex = (currentIndex + 1) % focusable.length;
+  const nextIndex =
+    (currentIndex + direction + focusable.length) % focusable.length;
   setFocus(database, state, focusable[nextIndex].id);
-}
-
-/**
- * Cycle focus to the previous focusable node (shift+tab).
- */
-export function focusPrev(database: Database, state: EventState) {
-  const focusable = collectFocusable(database);
-  if (focusable.length === 0) {
-    return;
-  }
-
-  const currentIndex = focusable.findIndex((n) => n.id === state.focusedId);
-  const prevIndex = currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1;
-  setFocus(database, state, focusable[prevIndex].id);
 }
 
 /**
@@ -212,8 +211,8 @@ function collectFocusable(database: Database): LayoutNode[] {
 
   // Sort by tabIndex (lower first), nodes without tabIndex come after
   nodes.sort((a, b) => {
-    const aIdx = (a.props.tabIndex as number | undefined) ?? Infinity;
-    const bIdx = (b.props.tabIndex as number | undefined) ?? Infinity;
+    const aIdx = a.props.tabIndex ?? Infinity;
+    const bIdx = b.props.tabIndex ?? Infinity;
     return aIdx - bIdx;
   });
 
@@ -228,6 +227,31 @@ export function setPointerCapture(state: EventState, nodeId: string) {
 
 export function releasePointerCapture(state: EventState) {
   state.capturedNodeId = null;
+}
+
+export function setHoveredNode(state: EventState, nodeId: string | null) {
+  state.hoveredNodeId = nodeId;
+}
+
+/**
+ * Handle a pointerdown: focus the hit node (or nearest focusable descendant),
+ * then dispatch the event. Centralizes focus logic so backends don't duplicate it.
+ */
+export function focusAndDispatch(
+  database: Database,
+  state: EventState,
+  event: PointerEvent,
+): void {
+  const target = hitTest(database, event.col, event.row);
+  if (target) {
+    const focusTarget = target.props.focusable
+      ? target
+      : findFocusable(database, target.id);
+    if (focusTarget) {
+      setFocus(database, state, focusTarget.id);
+    }
+  }
+  dispatchPointerEvent(database, state, event);
 }
 
 // --- Event dispatch ---
@@ -249,29 +273,10 @@ export function dispatchPointerEvent(
     target = hitTest(database, event.col, event.row);
   }
 
-  // Handle enter/leave
+  // Update hover state and fire enter/leave before the main event,
+  // so any re-entrant dispatch sees the correct current state.
   if (event.type === "pointermove" || event.type === "pointerdown") {
-    const newHoveredId = target?.id ?? null;
-    if (newHoveredId !== state.hoveredNodeId) {
-      // Fire leave on old
-      if (state.hoveredNodeId) {
-        const oldNode = database.nodes.get(state.hoveredNodeId);
-        if (oldNode) {
-          fireHandler(oldNode, "onPointerLeave", {
-            ...event,
-            type: "pointerleave",
-          });
-        }
-      }
-      // Fire enter on new
-      if (target) {
-        fireHandler(target, "onPointerEnter", {
-          ...event,
-          type: "pointerenter",
-        });
-      }
-      state.hoveredNodeId = newHoveredId;
-    }
+    updateHover(database, state, target, event);
   }
 
   if (!target) {
@@ -279,26 +284,26 @@ export function dispatchPointerEvent(
   }
 
   // Attach target bounds so handlers can compute relative positions
-  if (target.bounds) {
-    event.targetBounds = target.bounds;
-  }
+  const dispatched: PointerEvent = target.bounds
+    ? { ...event, targetBounds: target.bounds }
+    : event;
 
   // Build path from root to target for capture/bubble
   const path = buildPathToNode(database, target);
 
   // Capture phase (root -> target, fire *Capture handlers)
-  const captureHandler = getCaptureHandlerName(event.type);
+  const captureHandler = getCaptureHandlerName(dispatched.type);
   if (captureHandler) {
     for (const node of path) {
-      fireHandler(node, captureHandler, event);
+      fireHandler(node, captureHandler, dispatched);
     }
   }
 
   // Target + bubble phase (target -> root, fire regular handlers)
-  const bubbleHandler = getBubbleHandlerName(event.type);
+  const bubbleHandler = getBubbleHandlerName(dispatched.type);
   if (bubbleHandler) {
     for (let i = path.length - 1; i >= 0; i--) {
-      fireHandler(path[i], bubbleHandler, event);
+      fireHandler(path[i], bubbleHandler, dispatched);
     }
   }
 }
@@ -313,11 +318,7 @@ export function dispatchKeyEvent(
 ) {
   // Tab handling
   if (event.type === "keydown" && event.key === "Tab") {
-    if (event.shiftKey) {
-      focusPrev(database, state);
-    } else {
-      focusNext(database, state);
-    }
+    focusRelative(database, state, event.shiftKey ? -1 : 1);
     return;
   }
 
@@ -349,47 +350,119 @@ export function dispatchKeyEvent(
 
 // --- Helpers ---
 
+function updateHover(
+  database: Database,
+  state: EventState,
+  target: LayoutNode | null,
+  event: PointerEvent,
+) {
+  const newHoveredId = target?.id ?? null;
+  const oldHoveredId = state.hoveredNodeId;
+  if (newHoveredId === oldHoveredId) {
+    return;
+  }
+
+  setHoveredNode(state, newHoveredId);
+
+  if (oldHoveredId) {
+    const oldNode = database.nodes.get(oldHoveredId);
+    if (oldNode) {
+      fireHandler(oldNode, "onPointerLeave", {
+        ...event,
+        type: "pointerleave",
+      });
+    }
+  }
+
+  if (target) {
+    fireHandler(target, "onPointerEnter", {
+      ...event,
+      type: "pointerenter",
+    });
+  }
+}
+
 function buildPathToNode(database: Database, target: LayoutNode): LayoutNode[] {
   const path: LayoutNode[] = [];
   let current: LayoutNode | undefined = target;
   while (current) {
-    path.unshift(current);
+    path.push(current);
     if (current.parentId) {
       current = database.nodes.get(current.parentId);
     } else {
       break;
     }
   }
+  path.reverse();
   return path;
 }
 
 function fireHandler(
   node: LayoutNode,
   handlerName: keyof EventHandlerProps,
-  event: PointerEvent | KeyEvent | FocusEvent,
+  event: PointerEvent | KeyEvent | FocusEvent | TextUpdateEvent,
 ) {
-  const handler = node.props[handlerName];
-  if (typeof handler === "function") {
-    (handler as (event: PointerEvent | KeyEvent | FocusEvent) => void)(event);
-  }
+  const handler = node.props[handlerName] as
+    | ((event: PointerEvent | KeyEvent | FocusEvent | TextUpdateEvent) => void)
+    | undefined;
+  handler?.(event);
 }
 
+const CAPTURE_HANDLER_MAP = {
+  pointerdown: "onPointerDownCapture",
+  pointerup: "onPointerUpCapture",
+  pointermove: "onPointerMoveCapture",
+  pointercancel: "onPointerCancelCapture",
+} satisfies Record<string, keyof EventHandlerProps>;
+
+const BUBBLE_HANDLER_MAP = {
+  pointerdown: "onPointerDown",
+  pointerup: "onPointerUp",
+  pointermove: "onPointerMove",
+  pointerenter: "onPointerEnter",
+  pointerleave: "onPointerLeave",
+  pointercancel: "onPointerCancel",
+} satisfies Record<string, keyof EventHandlerProps>;
+
 function getCaptureHandlerName(type: string): keyof EventHandlerProps | null {
-  const map: Record<string, keyof EventHandlerProps> = {
-    pointerdown: "onPointerDownCapture",
-    pointerup: "onPointerUpCapture",
-    pointermove: "onPointerMoveCapture",
-  };
-  return map[type] ?? null;
+  return type in CAPTURE_HANDLER_MAP
+    ? CAPTURE_HANDLER_MAP[type as keyof typeof CAPTURE_HANDLER_MAP]
+    : null;
 }
 
 function getBubbleHandlerName(type: string): keyof EventHandlerProps | null {
-  const map: Record<string, keyof EventHandlerProps> = {
-    pointerdown: "onPointerDown",
-    pointerup: "onPointerUp",
-    pointermove: "onPointerMove",
-    pointerenter: "onPointerEnter",
-    pointerleave: "onPointerLeave",
-  };
-  return map[type] ?? null;
+  return type in BUBBLE_HANDLER_MAP
+    ? BUBBLE_HANDLER_MAP[type as keyof typeof BUBBLE_HANDLER_MAP]
+    : null;
+}
+
+/**
+ * Dispatch a text update event to the focused node. Capture -> target -> bubble.
+ * Used by EditContext to deliver text input changes.
+ */
+export function dispatchTextUpdateEvent(
+  database: Database,
+  state: EventState,
+  event: TextUpdateEvent,
+) {
+  if (!state.focusedId) {
+    return;
+  }
+
+  const target = database.nodes.get(state.focusedId);
+  if (!target) {
+    return;
+  }
+
+  const path = buildPathToNode(database, target);
+
+  // Capture phase
+  for (const node of path) {
+    fireHandler(node, "onTextUpdateCapture", event);
+  }
+
+  // Bubble phase
+  for (let i = path.length - 1; i >= 0; i--) {
+    fireHandler(path[i], "onTextUpdate", event);
+  }
 }

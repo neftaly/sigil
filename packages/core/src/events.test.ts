@@ -7,7 +7,7 @@ import {
   createEventState,
   dispatchKeyEvent,
   dispatchPointerEvent,
-  focusNext,
+  focusRelative,
   hitTest,
   releasePointerCapture,
   setFocus,
@@ -132,11 +132,15 @@ describe("pointer events", () => {
       col: 5,
       row: 5,
       button: 0,
+      shiftKey: false,
     };
     dispatchPointerEvent(database, state, event);
 
     expect(handler).toHaveBeenCalledOnce();
-    expect(handler).toHaveBeenCalledWith(event);
+    expect(handler).toHaveBeenCalledWith({
+      ...event,
+      targetBounds: left.bounds,
+    });
   });
 
   it("bubble/capture order: parent capture fires before child handler", () => {
@@ -162,6 +166,7 @@ describe("pointer events", () => {
       col: 5,
       row: 5,
       button: 0,
+      shiftKey: false,
     });
 
     expect(order).toEqual([
@@ -196,6 +201,7 @@ describe("pointer events", () => {
       col: 5,
       row: 5,
       button: 0,
+      shiftKey: false,
     });
     expect(events).toEqual(["left-enter"]);
 
@@ -206,6 +212,7 @@ describe("pointer events", () => {
       col: 15,
       row: 5,
       button: 0,
+      shiftKey: false,
     });
     expect(events).toEqual(["left-leave", "right-enter"]);
   });
@@ -228,6 +235,7 @@ describe("pointer events", () => {
       col: 15,
       row: 5,
       button: 0,
+      shiftKey: false,
     });
 
     expect(leftHandler).toHaveBeenCalledOnce();
@@ -242,6 +250,7 @@ describe("pointer events", () => {
       col: 15,
       row: 5,
       button: 0,
+      shiftKey: false,
     });
 
     expect(rightHandler).toHaveBeenCalledOnce();
@@ -331,16 +340,16 @@ describe("focus", () => {
 
     // Simulate unmount by checking the node doesn't exist
     // The actual focus reset should happen when dispatching an event
-    // And the focused node is gone. Let's verify focusNext handles it.
+    // And the focused node is gone. Let's verify focusRelative handles it.
     database.nodes.delete("left");
-    focusNext(database, state);
+    focusRelative(database, state, 1);
 
     // Should focus the next available focusable node (right)
     // But right isn't focusable in this test, so it stays
     // Let's make root focusable
     const root = database.nodes.get("root")!;
     root.props.focusable = true;
-    focusNext(database, state);
+    focusRelative(database, state, 1);
     expect(state.focusedId).toBe("root");
   });
 

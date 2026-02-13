@@ -1,2 +1,9 @@
 packages:
-  - 'packages/*'
+  - "packages/*"
+
+publicHoistPattern:
+  - "@storybook/*"
+  - storybook
+  - react
+  - react-dom
+  - react-reconciler

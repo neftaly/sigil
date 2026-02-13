@@ -150,6 +150,10 @@ const NAMED_COLORS: Record<string, string> = {
   yellowgreen: "#9acd32",
 };
 
+function parseHex(hex: string): number {
+  return parseInt(hex, 16);
+}
+
 /**
  * Parse a CSS color string to [r, g, b].
  * Supports #rgb, #rrggbb, and CSS named colors.
@@ -162,29 +166,25 @@ export function parseColor(color: string): [number, number, number] | null {
   const named = NAMED_COLORS[lower];
   if (named) {
     return [
-      parseInt(named.slice(1, 3), 16),
-      parseInt(named.slice(3, 5), 16),
-      parseInt(named.slice(5, 7), 16),
+      parseHex(named.slice(1, 3)),
+      parseHex(named.slice(3, 5)),
+      parseHex(named.slice(5, 7)),
     ];
   }
 
   // #rrggbb
   const match6 = lower.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/);
   if (match6) {
-    return [
-      parseInt(match6[1], 16),
-      parseInt(match6[2], 16),
-      parseInt(match6[3], 16),
-    ];
+    return [parseHex(match6[1]), parseHex(match6[2]), parseHex(match6[3])];
   }
 
   // #rgb
   const match3 = lower.match(/^#([0-9a-f])([0-9a-f])([0-9a-f])$/);
   if (match3) {
     return [
-      parseInt(match3[1] + match3[1], 16),
-      parseInt(match3[2] + match3[2], 16),
-      parseInt(match3[3] + match3[3], 16),
+      parseHex(match3[1] + match3[1]),
+      parseHex(match3[2] + match3[2]),
+      parseHex(match3[3] + match3[3]),
     ];
   }
 

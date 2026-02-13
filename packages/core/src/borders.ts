@@ -1,6 +1,6 @@
 import boxes from "cli-boxes";
 
-import type { Cell, CellStyle } from "./cell.ts";
+import { type Cell, type CellStyle, gridWidth } from "./cell.ts";
 
 export type BorderStyle = keyof typeof boxes;
 
@@ -18,11 +18,11 @@ export function writeBorder(
     return;
   }
 
-  const gridHeight = grid.length;
-  const gridWidth = grid[0]?.length ?? 0;
+  const gh = grid.length;
+  const gw = gridWidth(grid);
 
   function writeCell(row: number, col: number, char: string) {
-    if (row >= 0 && row < gridHeight && col >= 0 && col < gridWidth) {
+    if (row >= 0 && row < gh && col >= 0 && col < gw) {
       grid[row][col] = { char, style: cellStyle };
     }
   }

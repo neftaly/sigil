@@ -11,10 +11,13 @@
     "playwright": "playwright test"
   },
   "devDependencies": {
+    "@charui/core": "workspace:*",
     "@charui/dom": "workspace:*",
     "@charui/terminal": "workspace:*",
     "@charui/threedee": "workspace:*",
+    "@types/react": "^19.2.14",
     "@xterm/xterm": "^5.5.0",
+    "react": "^19.2.4",
     "@playwright/test": "^1.58.2",
     "@storybook/react": "^10.2.8",
     "@storybook/react-vite": "^10.2.8",

@@ -5,7 +5,9 @@ import {
   type Database,
   type LayoutNode,
   type NodeProps,
+  type NodeType,
   type TextNodeProps,
+  type WrapMode,
   addNode,
   applyYogaStyles,
   measureText,
@@ -13,16 +15,19 @@ import {
   updateNode,
 } from "@charui/core";
 
-let nodeCounter = 0;
-
-function generateId(): string {
-  return `node_${++nodeCounter}`;
+export interface ReconcilerOptions {
+  onCommit?: () => void;
 }
 
-export type Instance = LayoutNode;
-export type TextInstance = LayoutNode;
+export function createReconciler(
+  database: Database,
+  options?: ReconcilerOptions,
+) {
+  let nextNodeId = 0;
+  function generateNodeId(): string {
+    return `node_${++nextNodeId}`;
+  }
 
-export function createReconciler(database: Database) {
   const reconciler = ReactReconciler({
     supportsMutation: true,
     supportsPersistence: false,
@@ -30,15 +35,15 @@ export function createReconciler(database: Database) {
     supportsMicrotasks: true,
 
     createInstance(type: string, props: Record<string, unknown>) {
-      const id = generateId();
+      const id = generateNodeId();
       const typedProps = props as NodeProps;
       const node = addNode(database, {
         id,
-        type,
+        type: type as NodeType,
         props: typedProps,
         parentId: null,
       });
-      applyYogaStyles(database, node, typedProps);
+      applyYogaStyles(node, typedProps);
       if (type === "text") {
         setTextMeasureFunc(node, typedProps as TextNodeProps);
       }
@@ -46,7 +51,7 @@ export function createReconciler(database: Database) {
     },
 
     createTextInstance(text: string) {
-      const id = generateId();
+      const id = generateNodeId();
       const props: TextNodeProps = { content: text };
       const node = addNode(database, {
         id,
@@ -58,54 +63,50 @@ export function createReconciler(database: Database) {
       return node;
     },
 
-    appendInitialChild(parent: Instance, child: Instance | TextInstance) {
+    appendInitialChild(parent: LayoutNode, child: LayoutNode) {
       appendChildToParent(database, parent, child);
     },
 
-    appendChild(parent: Instance, child: Instance | TextInstance) {
+    appendChild(parent: LayoutNode, child: LayoutNode) {
       appendChildToParent(database, parent, child);
     },
 
-    appendChildToContainer(_container: Database, child: Instance) {
+    appendChildToContainer(_container: Database, child: LayoutNode) {
       // The child becomes the root
       database.rootId = child.id;
     },
 
-    removeChild(parent: Instance, child: Instance | TextInstance) {
+    removeChild(parent: LayoutNode, child: LayoutNode) {
       removeChildFromParent(database, parent, child);
     },
 
-    removeChildFromContainer(_container: Database, child: Instance) {
+    removeChildFromContainer(_container: Database, child: LayoutNode) {
       removeNode(database, child.id);
     },
 
     insertBefore(
-      parent: Instance,
-      child: Instance | TextInstance,
-      beforeChild: Instance | TextInstance,
+      parent: LayoutNode,
+      child: LayoutNode,
+      beforeChild: LayoutNode,
     ) {
       insertChildBefore(database, parent, child, beforeChild);
     },
 
     commitUpdate(
-      instance: Instance,
+      instance: LayoutNode,
       _type: string,
       _oldProps: Record<string, unknown>,
       newProps: Record<string, unknown>,
     ) {
       const typedProps = newProps as NodeProps;
       updateNode(database, instance.id, typedProps);
-      applyYogaStyles(database, instance, typedProps);
+      applyYogaStyles(instance, typedProps);
       if (instance.type === "text") {
         setTextMeasureFunc(instance, typedProps as TextNodeProps);
       }
     },
 
-    commitTextUpdate(
-      instance: TextInstance,
-      _oldText: string,
-      newText: string,
-    ) {
+    commitTextUpdate(instance: LayoutNode, _oldText: string, newText: string) {
       const props: TextNodeProps = { content: newText };
       updateNode(database, instance.id, props);
       setTextMeasureFunc(instance, props);
@@ -124,7 +125,7 @@ export function createReconciler(database: Database) {
     },
 
     resetAfterCommit() {
-      // Layout will be triggered by the caller
+      options?.onCommit?.();
     },
 
     shouldSetTextContent() {
@@ -139,7 +140,7 @@ export function createReconciler(database: Database) {
       return parentContext;
     },
 
-    getPublicInstance(instance: Instance) {
+    getPublicInstance(instance: LayoutNode) {
       return instance;
     },
 
@@ -217,19 +218,19 @@ export function createReconciler(database: Database) {
       // No-op
     },
 
-    hideInstance(instance: Instance) {
+    hideInstance(instance: LayoutNode) {
       instance.yogaNode.setDisplay(database.yoga.DISPLAY_NONE);
     },
 
-    unhideInstance(instance: Instance) {
+    unhideInstance(instance: LayoutNode) {
       instance.yogaNode.setDisplay(database.yoga.DISPLAY_FLEX);
     },
 
-    hideTextInstance(instance: TextInstance) {
+    hideTextInstance(instance: LayoutNode) {
       instance.yogaNode.setDisplay(database.yoga.DISPLAY_NONE);
     },
 
-    unhideTextInstance(instance: TextInstance) {
+    unhideTextInstance(instance: LayoutNode) {
       instance.yogaNode.setDisplay(database.yoga.DISPLAY_FLEX);
     },
 
@@ -265,22 +266,26 @@ export function createReconciler(database: Database) {
   return reconciler;
 }
 
-function appendChildToParent(
-  database: Database,
-  parent: Instance,
-  child: Instance | TextInstance,
-) {
-  // Detach from previous parent if any
-  if (child.parentId !== null) {
-    const oldParent = database.nodes.get(child.parentId);
-    if (oldParent) {
-      const index = oldParent.childIds.indexOf(child.id);
-      if (index !== -1) {
-        oldParent.childIds.splice(index, 1);
-        oldParent.yogaNode.removeChild(child.yogaNode);
-      }
+function detachChild(database: Database, child: LayoutNode) {
+  if (child.parentId === null) {
+    return;
+  }
+  const oldParent = database.nodes.get(child.parentId);
+  if (oldParent) {
+    const index = oldParent.childIds.indexOf(child.id);
+    if (index !== -1) {
+      oldParent.childIds.splice(index, 1);
+      oldParent.yogaNode.removeChild(child.yogaNode);
     }
   }
+}
+
+function appendChildToParent(
+  database: Database,
+  parent: LayoutNode,
+  child: LayoutNode,
+) {
+  detachChild(database, child);
 
   child.parentId = parent.id;
   parent.childIds.push(child.id);
@@ -289,8 +294,8 @@ function appendChildToParent(
 
 function removeChildFromParent(
   database: Database,
-  parent: Instance,
-  child: Instance | TextInstance,
+  parent: LayoutNode,
+  child: LayoutNode,
 ) {
   const index = parent.childIds.indexOf(child.id);
   if (index !== -1) {
@@ -302,21 +307,11 @@ function removeChildFromParent(
 
 function insertChildBefore(
   database: Database,
-  parent: Instance,
-  child: Instance | TextInstance,
-  beforeChild: Instance | TextInstance,
+  parent: LayoutNode,
+  child: LayoutNode,
+  beforeChild: LayoutNode,
 ) {
-  // Detach from previous parent if any
-  if (child.parentId !== null) {
-    const oldParent = database.nodes.get(child.parentId);
-    if (oldParent) {
-      const idx = oldParent.childIds.indexOf(child.id);
-      if (idx !== -1) {
-        oldParent.childIds.splice(idx, 1);
-        oldParent.yogaNode.removeChild(child.yogaNode);
-      }
-    }
-  }
+  detachChild(database, child);
 
   const beforeIndex = parent.childIds.indexOf(beforeChild.id);
   if (beforeIndex === -1) {
@@ -332,12 +327,12 @@ function insertChildBefore(
 
 function setTextMeasureFunc(node: LayoutNode, props: TextNodeProps) {
   const content = props.content ?? "";
-  const wrapMode = props.wrap ? "wrap" : "nowrap";
+  const wrapMode: WrapMode = props.wrap ? "wrap" : "nowrap";
 
   node.yogaNode.setMeasureFunc((maxWidth, widthMode) => {
     // MeasureMode.Undefined = 0
     const width = widthMode === 0 ? Infinity : maxWidth;
-    const measured = measureText(content, wrapMode as "wrap" | "nowrap", width);
+    const measured = measureText(content, wrapMode, width);
     return { width: measured.width, height: measured.height };
   });
 

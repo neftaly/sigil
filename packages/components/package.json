@@ -13,9 +13,10 @@
   "dependencies": {
     "@charui/core": "workspace:*",
     "@charui/interactions": "workspace:*",
-    "@charui/react": "workspace:*",
-    "@types/react": "^19.2.14",
-    "react": "^19.2.4"
+    "@charui/react": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
   },
   "devDependencies": {
     "@charui/dom": "workspace:*",

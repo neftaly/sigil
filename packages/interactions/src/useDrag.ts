@@ -1,7 +1,8 @@
-import { useCallback, useRef, useState } from "react";
+import { type RefObject, useCallback, useRef, useState } from "react";
 
 import {
   type EventState,
+  type LayoutNode,
   type PointerEvent,
   releasePointerCapture,
   setPointerCapture,
@@ -15,35 +16,40 @@ export interface DragState {
     onPointerDown: (event: PointerEvent) => void;
     onPointerMove: (event: PointerEvent) => void;
     onPointerUp: (event: PointerEvent) => void;
+    onPointerCancel: (event: PointerEvent) => void;
   };
 }
 
 export interface UseDragOptions {
   eventState: EventState;
-  nodeId: string;
+  nodeRef: RefObject<LayoutNode | null>;
   onDrag?: (delta: { col: number; row: number }) => void;
   onDragEnd?: (delta: { col: number; row: number }) => void;
 }
 
 export function useDrag(options: UseDragOptions): DragState {
-  const { eventState, nodeId, onDrag, onDragEnd } = options;
-  const [isDragging, setIsDragging] = useState(false);
+  const { eventState, nodeRef, onDrag, onDragEnd } = options;
   const [delta, setDelta] = useState({ col: 0, row: 0 });
+  const draggingRef = useRef(false);
   const startRef = useRef({ col: 0, row: 0 });
 
   const onPointerDown = useCallback(
     (event: PointerEvent) => {
+      const id = nodeRef.current?.id;
+      if (!id) {
+        return;
+      }
       startRef.current = { col: event.col, row: event.row };
-      setIsDragging(true);
+      draggingRef.current = true;
       setDelta({ col: 0, row: 0 });
-      setPointerCapture(eventState, nodeId);
+      setPointerCapture(eventState, id);
     },
-    [eventState, nodeId],
+    [eventState, nodeRef],
   );
 
   const onPointerMove = useCallback(
     (event: PointerEvent) => {
-      if (!isDragging) {
+      if (!draggingRef.current) {
         return;
       }
       const newDelta = {
@@ -53,30 +59,39 @@ export function useDrag(options: UseDragOptions): DragState {
       setDelta(newDelta);
       onDrag?.(newDelta);
     },
-    [isDragging, onDrag],
+    [onDrag],
   );
 
   const onPointerUp = useCallback(
     (event: PointerEvent) => {
-      if (!isDragging) {
+      if (!draggingRef.current) {
         return;
       }
       const finalDelta = {
         col: event.col - startRef.current.col,
         row: event.row - startRef.current.row,
       };
-      setIsDragging(false);
+      draggingRef.current = false;
       setDelta({ col: 0, row: 0 });
       releasePointerCapture(eventState);
       onDragEnd?.(finalDelta);
     },
-    [isDragging, eventState, onDragEnd],
+    [eventState, onDragEnd],
   );
 
+  const onPointerCancel = useCallback(() => {
+    if (!draggingRef.current) {
+      return;
+    }
+    draggingRef.current = false;
+    setDelta({ col: 0, row: 0 });
+    releasePointerCapture(eventState);
+  }, [eventState]);
+
   return {
-    isDragging,
+    isDragging: draggingRef.current,
     deltaCol: delta.col,
     deltaRow: delta.row,
-    handlers: { onPointerDown, onPointerMove, onPointerUp },
+    handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel },
   };
 }

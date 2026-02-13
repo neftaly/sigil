@@ -45,28 +45,26 @@ test.describe("InputField", () => {
     // Click to set charui focus on the input node
     await clickInsideCanvas(page);
     await page.keyboard.type("hello");
-    await page.waitForTimeout(200);
-    const text = await getGridText(page);
-    expect(text).toContain("hell");
+    await expect(getCanvas(page)).toContainText("hello");
   });
 
   test("arrow keys - cursor moves visually", async ({ page }) => {
     await clickInsideCanvas(page);
     await page.keyboard.type("abc");
-    await page.waitForTimeout(100);
+    // Wait for "abc" to appear before pressing arrow keys
+    await expect(getCanvas(page)).toContainText("abc");
 
-    // Move left twice
+    // Move left twice — wait for each to take effect by checking cursor position.
+    // The cursor overlay inverts the cell it's on, so the text content stays
+    // the same but the underlying value changes. We can't easily observe the
+    // cursor position from textContent alone, so we issue each keypress
+    // sequentially and give the reconciler a frame to flush.
     await page.keyboard.press("ArrowLeft");
     await page.keyboard.press("ArrowLeft");
-    await page.waitForTimeout(100);
 
     // Type 'X' — should insert between 'a' and 'bc'
     await page.keyboard.type("X");
-    await page.waitForTimeout(100);
-    const text = await getGridText(page);
-    // Cursor block replaces char at cursor position, so 'b' becomes '█'
-    expect(text).toContain("aX");
-    expect(text).toContain("c");
+    await expect(getCanvas(page)).toContainText("aXbc");
   });
 });
 
@@ -96,9 +94,7 @@ test.describe("FocusDemo", () => {
     await page.waitForTimeout(100);
 
     await page.keyboard.type("hello");
-    await page.waitForTimeout(200);
-    const text = await getGridText(page);
-    expect(text).toContain("hell");
+    await expect(getCanvas(page)).toContainText("hello");
   });
 });
 
@@ -133,14 +129,14 @@ test.describe("ResizableBox", () => {
     await page.mouse.down();
     await page.mouse.move(startX + 80, startY + 40, { steps: 5 });
     await page.mouse.up();
-    await page.waitForTimeout(200);
 
     // Check that the box changed — first row should be wider
-    const newText = await getGridText(page);
-    const [newFirstRow] = newText.split("\n");
-    expect(newFirstRow.trim().length).toBeGreaterThan(
-      initialFirstRow.trim().length,
-    );
+    await expect
+      .poll(async () => {
+        const newText = await getGridText(page);
+        return newText.split("\n")[0].trim().length;
+      })
+      .toBeGreaterThan(initialFirstRow.trim().length);
   });
 });
 

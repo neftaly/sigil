@@ -5,6 +5,7 @@ import {
   type Database,
   computeLayout,
   createDatabase,
+  gridToString,
   rasterize,
 } from "@charui/core";
 
@@ -67,15 +68,7 @@ export function createRoot(width: number, height: number): Root {
     getGrid,
 
     toString() {
-      const grid = getGrid();
-      return grid
-        .map((row) =>
-          row
-            .filter((cell) => !cell.continuation)
-            .map((cell) => cell.char)
-            .join(""),
-        )
-        .join("\n");
+      return gridToString(getGrid());
     },
 
     database,

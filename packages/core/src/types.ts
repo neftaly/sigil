@@ -1,4 +1,10 @@
-import type { FocusEvent, KeyEvent, PointerEvent } from "./events.ts";
+import type { BorderStyle } from "./borders.ts";
+import type {
+  FocusEvent,
+  KeyEvent,
+  PointerEvent,
+  TextUpdateEvent,
+} from "./events.ts";
 
 export interface EventHandlerProps {
   onPointerDown?: (event: PointerEvent) => void;
@@ -9,10 +15,14 @@ export interface EventHandlerProps {
   onPointerDownCapture?: (event: PointerEvent) => void;
   onPointerUpCapture?: (event: PointerEvent) => void;
   onPointerMoveCapture?: (event: PointerEvent) => void;
+  onPointerCancel?: (event: PointerEvent) => void;
+  onPointerCancelCapture?: (event: PointerEvent) => void;
   onKeyDown?: (event: KeyEvent) => void;
   onKeyUp?: (event: KeyEvent) => void;
   onKeyDownCapture?: (event: KeyEvent) => void;
   onKeyUpCapture?: (event: KeyEvent) => void;
+  onTextUpdate?: (event: TextUpdateEvent) => void;
+  onTextUpdateCapture?: (event: TextUpdateEvent) => void;
   onFocus?: (event: FocusEvent) => void;
   onBlur?: (event: FocusEvent) => void;
   focusable?: boolean;
@@ -46,7 +56,7 @@ export interface LayoutProps {
   paddingRight?: number;
   margin?: number;
   border?: boolean;
-  borderStyle?: string;
+  borderStyle?: BorderStyle;
   position?: "relative" | "absolute";
   top?: number;
   left?: number;

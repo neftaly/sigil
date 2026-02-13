@@ -56,7 +56,9 @@ React JSX -> Reconciler -> Layout Database -> Cell Grid -> Backend
 - `measure.ts` -- `measureText` and `wrapText` using `string-width` for CJK/emoji. Word-boundary wrapping.
 - `borders.ts` -- `writeBorder` using `cli-boxes` border characters (single, double, rounded, etc.)
 - `rasterize.ts` -- walk tree, write chars/borders to `Cell[][]` with clipping. Handle wide chars with continuation cells.
-- `events.ts` -- `EventState`, `PointerEvent`, `KeyEvent`, `FocusEvent`. Hit testing (tree walk, back-to-front for z-order). Focus management with tab cycling. Pointer capture. Capture/bubble dispatch matching React DOM.
+- `events.ts` -- `EventState`, `PointerEvent`, `KeyEvent`, `FocusEvent`, `TextUpdateEvent`. Hit testing (tree walk, back-to-front for z-order). Focus management with tab cycling. Pointer capture. Capture/bubble dispatch matching React DOM. `handlePointerDown()` centralizes hitTest → findFocusable → setFocus → dispatch so backends don't duplicate focus logic.
+- `overlays.ts` -- `OverlayState`, `setOverlay`, `removeOverlay`, `applyOverlays`. Post-rasterization transforms (invert, merge). Priority-based stacking. `applyOverlaysToNodeGrid()` for per-node overlay application (3D backend).
+- `flush-emitter.ts` -- `FlushEmitter` with `emit(snapshot)` / `subscribe(callback)`. `FlushSnapshot` bundles `{ database, grid, overlayState, eventState }`. Replaces old DatabaseReporterContext pattern.
 - `yoga-styles.ts` -- `applyYogaStyles(database, node, props)` maps typed props to Yoga API calls. Extracted from reconciler for reuse and testability.
 - `types.ts` -- `NodeProps = BoxNodeProps | TextNodeProps` discriminated union. Typed prop interfaces instead of `Record<string, unknown>`.
 
@@ -79,17 +81,17 @@ React JSX -> Reconciler -> Layout Database -> Cell Grid -> Backend
 - `toString.ts` -- convert `Cell[][]` to string, filtering continuation cells
 
 ### Phase 5: @charui/dom
-- `dom.ts` -- `renderToDOM(container, grid, prevGrid)` diff-based. Groups consecutive cells with same style into `<span>`. Row `<div>` reuse. `pixelToGrid(container, clientX, clientY)` with per-instance char width measurement (not global cache).
-- `input.ts` -- `bindInput(container, database, eventState)` binds DOM pointer/keyboard events. DOM pointer capture follows charui capture: only call `container.setPointerCapture()` when `eventState.capturedNodeId` is set after dispatching pointerdown, release when charui releases.
-- `CharuiCanvas.tsx` -- React component wrapper. Creates database, eventState, reconciler. Renders children via reconciler, computes layout, rasterizes, renderToDOM. Binds input. If `DatabaseReporterContext` is present, calls `report(database)` so external consumers (e.g. storybook decorator) can access the live database.
-- `context.ts` -- React context for database + eventState. Also exports `DatabaseReporterContext` with type `{ report(db: Database): void } | null` for sharing the database with sibling components.
+- `dom.ts` -- `renderToDOM(container, grid, prevGrid)` diff-based. Groups consecutive cells with same style into `<span>`. Row `<div>` reuse. `pixelToGrid(container, clientX, clientY)` with per-instance char width measurement (not global cache). `syncSelectionToDOM(container, overlayState)` maps overlay selection ranges to browser Selection API for clipboard support. `gridToDOM(container, row, col)` maps grid coords to DOM node+offset.
+- `input.ts` -- `bindInput(container, database, eventState)` binds DOM pointer/keyboard events. Uses `handlePointerDown()` from core for focus/dispatch. DOM pointer capture follows charui capture. `container.focus()` on pointerdown to keep EditContext active.
+- `CharuiCanvas.tsx` -- React component wrapper. Creates database, eventState, overlayState, reconciler. Renders children via reconciler (wrapped in `CanvasContext.Provider`), computes layout, rasterizes, renderToDOM, syncSelectionToDOM. Accepts optional `flushEmitter` prop (or reads from `FlushEmitterContext`) to notify secondary backends of flush snapshots. `::selection` CSS applied via `.charui-canvas` class.
+- `context.ts` -- React context for database + eventState + overlayState (`CharuiContext`). `FlushEmitterContext` for providing `FlushEmitter` to CharuiCanvas.
 
 ### Phase 6: @charui/interactions
 - `useDrag.ts` -- drag with pointer capture, delta tracking
 - `useResize.ts` -- resize with min/max constraints
 
 ### Phase 7: @charui/components
-- `Input.tsx` -- Stateless controlled input. Props: `value`, `cursorPosition`, `scrollOffset`, `showCursor` (not `focused` -- focus is about event routing, showCursor is about rendering the block cursor), `width`, `placeholder`, `onChange`, `onFocus`, `onBlur`. `applyAction` pure reducer.
+- `Input.tsx` -- Stateless controlled input. Props: `value`, `selectionStart`, `selectionEnd`, `scrollOffset`, `showCursor` (not `focused` -- focus is about event routing, showCursor is about rendering the cursor overlay), `width`, `placeholder`, `onChange`, `onFocus`, `onBlur`. `applyAction` pure reducer. Drag-select via pointer events + pointer capture + overlay rendering (universal across backends). Uses `stateRef` pattern to avoid stale closures during rapid EditContext events. Cursor/selection rendered as inverted overlay cells. Reads overlayState/eventState/editContextSync from `useCanvasContext()` (charui reconciler context, not host-tree context).
 
 ### Phase 8: @charui/terminal
 - `ansi.ts` -- `toAnsi(grid: Cell[][]): string`. Converts cell grid to ANSI escape sequences. Truecolor fg/bg via `\x1b[38;2;r;g;bm` / `\x1b[48;2;r;g;bm`. Bold `\x1b[1m`, italic `\x1b[3m`, underline `\x1b[4m`. Groups consecutive cells with same style into one escape sequence. Skips continuation cells. Uses `\r\n` line endings for terminal compatibility.
@@ -105,7 +107,7 @@ React JSX -> Reconciler -> Layout Database -> Cell Grid -> Backend
 ### Phase 10: Stories & storybook decorator
 - `CharuiCanvas.stories.tsx` -- BorderedBoxWithText, NestedBoxes, FlexRow, TextWrapping
 - `Input.stories.tsx` -- InputField, FocusDemo (two inputs with tab cycling), ResizableBox
-- `.storybook/preview.tsx` -- Global decorator renders every story in **3 panes**: DOM (interactive), xterm.js terminal (`toAnsi` output), 3D exploded view. All share one database via `DatabaseReporterContext` (reports both `database` and `grid`). Responsive layout: `flex-direction: row` when wide (>900px), `column` when narrow. Layout is `fullscreen`. xterm.js is a storybook-only devDep (`@xterm/xterm`). Storybook toolbar dropdown selects between 3 bundled monospace fonts (Hack, IBM Plex Mono, Iosevka) — all local `.ttf` files in `.storybook/fonts/` with licenses. Font selection updates all 3 panes: DOM via `@font-face` + `fontFamily`, terminal via xterm.js `fontFamily`, 3D via `FontSet` URLs. Each font has 4 variants (Regular, Bold, Italic, BoldItalic) loaded via the `FontFace` API with proper `weight`/`style` descriptors.
+- `.storybook/preview.tsx` -- Global decorator renders every story in **3 panes**: DOM (interactive), xterm.js terminal (`toAnsi` output), 3D exploded view. All share one database via `FlushEmitter` — CharuiCanvas emits `FlushSnapshot` after each render, storybook subscribes via `emitter.subscribe()`. Terminal pane has SGR mouse reporting enabled (`\x1b[?1003h\x1b[?1006h`) so charui receives mouse events via `parseSGRMouse()`. Selection synced to both DOM (`syncSelectionToDOM`) and terminal (`syncSelectionToTerminal` via `term.select()`). Responsive layout: `flex-direction: row` when wide (>900px), `column` when narrow. Layout is `fullscreen`. xterm.js is a storybook-only devDep (`@xterm/xterm`). Storybook toolbar dropdown selects between 3 bundled monospace fonts (Hack, IBM Plex Mono, Iosevka) — all local `.ttf` files in `.storybook/fonts/` with licenses. Font selection updates all 3 panes: DOM via `@font-face` + `fontFamily`, terminal via xterm.js `fontFamily`, 3D via `FontSet` URLs. Each font has 4 variants (Regular, Bold, Italic, BoldItalic) loaded via the `FontFace` API with proper `weight`/`style` descriptors.
 
 ### Phase 11: Tests
 - **Vitest unit tests** for core (database, events, measure, rasterize), react (reconciler), components (Input applyAction)
@@ -119,7 +121,7 @@ React JSX -> Reconciler -> Layout Database -> Cell Grid -> Backend
 
 ### 2. DOM pointer capture follows charui capture
 **Problem:** Two pointer capture systems (charui's `capturedNodeId` for event routing, DOM's `setPointerCapture` for browser event delivery) manually kept in sync. Current code always captures on every pointerdown regardless of whether charui capture was requested.
-**Fix:** They are genuinely two layers (charui routes events to nodes, DOM keeps browser delivering events). Make DOM automatically follow charui: after dispatching pointerdown, check if `eventState.capturedNodeId` was set by a handler -- if so, call `container.setPointerCapture()`. On pointerup, if charui capture is released, release DOM capture. This makes charui the single source of truth and DOM a follower.
+**Fix:** Done. DOM automatically follows charui: after dispatching pointerdown via `handlePointerDown()`, check if `eventState.capturedNodeId` was set by a handler -- if so, call `container.setPointerCapture()`. On pointerup, if charui capture is released, release DOM capture. charui is the single source of truth.
 
 ### 3. Typed props instead of `Record<string, unknown>`
 **Problem:** Props are `Record<string, unknown>` everywhere in core/reconciler. Every access is `as string`, `as number`. No compile-time safety -- typos like `flexshrink` silently fail.
@@ -141,14 +143,14 @@ React JSX -> Reconciler -> Layout Database -> Cell Grid -> Backend
 - ScrollBox component
 - More components: Button, Select, TextArea, Panel
 - More interaction hooks: useHover, useClick
-- Overlay system for carets-between-chars, squiggly underlines, selection highlight, arrows between nodes
+- Overlay extensions: squiggly underlines, arrows between nodes
 - Virtualization (distant)
-- EditContext for proper IME input (with polyfill)
+- EditContext polyfill (cross-browser — user is writing this)
 - Customizable keyboard shortcut mapping / action system
 - `useBlink(active)` hook in interactions (needs showCursor, not focused)
 - react-spring animation support (Yoga works with fractional intermediate values, floor/ceil at render time)
 - Sub-cell precision (if needed for smooth drag -- 50/50 on whether this is wanted)
 - Embedded content (images, HTML) as fixed-size-multiple overlays
-- Native text selection via hidden text for copy/paste
 - Emoji rendering in @charui/threedee — troika can't render color emoji (CBDT/COLR bitmap tables). Options: (a) runtime: render each unique emoji to an offscreen `<canvas>` via `ctx.fillText()`, create `THREE.CanvasTexture`, display as textured quad/sprite at cell position; (b) compile-time: pre-generate emoji sprite atlas at build time, ship as static asset. Need to evaluate both approaches — runtime is simpler but has first-render latency, compile-time needs a build step but is instant. DOM and terminal panes handle emojis natively via browser/system font fallback.
 - Undo/redo architecture (make it pluggable, lots of nuance)
+- Terminal keyboard input (xterm.js `onData` for non-mouse sequences → charui key events)

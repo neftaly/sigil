@@ -1,10 +1,15 @@
 import stringWidth from "string-width";
 
-import { type Cell, type CellStyle, createGrid } from "./cell.ts";
-import type { Database, LayoutNode } from "./database.ts";
-import { type BorderStyle, writeBorder } from "./borders.ts";
+import { type Cell, type CellStyle, createGrid, gridWidth } from "./cell.ts";
+import type { Bounds, Database, LayoutNode } from "./database.ts";
+import { writeBorder } from "./borders.ts";
 import { wrapText } from "./measure.ts";
-import type { BoxNodeProps, TextNodeProps } from "./types.ts";
+import type { BoxNodeProps, NodeProps, TextNodeProps } from "./types.ts";
+
+/** Preserve existing background color when the new style has none. */
+function mergeWithExistingBg(existing: CellStyle, style: CellStyle): CellStyle {
+  return existing.bg && !style.bg ? { ...style, bg: existing.bg } : style;
+}
 
 /** Write a character to the grid, respecting bounds clipping. */
 function writeChar(
@@ -13,25 +18,21 @@ function writeChar(
   col: number,
   char: string,
   style: CellStyle,
-  clipBounds: { x: number; y: number; w: number; h: number },
+  clipBounds: Bounds,
 ) {
   if (
     row < clipBounds.y ||
-    row >= clipBounds.y + clipBounds.h ||
+    row >= clipBounds.y + clipBounds.height ||
     col < clipBounds.x ||
-    col >= clipBounds.x + clipBounds.w
+    col >= clipBounds.x + clipBounds.width
   ) {
     return;
   }
 
-  const gridHeight = grid.length;
-  const gridWidth = grid[0]?.length ?? 0;
-  if (row >= 0 && row < gridHeight && col >= 0 && col < gridWidth) {
-    const existing = grid[row][col];
-    const merged =
-      existing.style.bg && !style.bg
-        ? { ...style, bg: existing.style.bg }
-        : style;
+  const gh = grid.length;
+  const gw = gridWidth(grid);
+  if (row >= 0 && row < gh && col >= 0 && col < gw) {
+    const merged = mergeWithExistingBg(grid[row][col].style, style);
     grid[row][col] = { char, style: merged };
   }
 }
@@ -43,28 +44,24 @@ function writeContinuationCells(
   col: number,
   charWidth: number,
   style: CellStyle,
-  clipBounds: { x: number; y: number; w: number; h: number },
+  clipBounds: Bounds,
 ) {
   if (charWidth <= 1) {
     return;
   }
-  const gridHeight = grid.length;
-  const gridWidth = grid[0]?.length ?? 0;
+  const gh = grid.length;
+  const gw = gridWidth(grid);
   for (let offset = 1; offset < charWidth; offset++) {
     const contCol = col + offset;
     if (
       contCol >= clipBounds.x &&
-      contCol < clipBounds.x + clipBounds.w &&
+      contCol < clipBounds.x + clipBounds.width &&
       row >= 0 &&
-      row < gridHeight &&
+      row < gh &&
       contCol >= 0 &&
-      contCol < gridWidth
+      contCol < gw
     ) {
-      const existing = grid[row][contCol];
-      const merged =
-        existing.style.bg && !style.bg
-          ? { ...style, bg: existing.style.bg }
-          : style;
+      const merged = mergeWithExistingBg(grid[row][contCol].style, style);
       grid[row][contCol] = { char: "", style: merged, continuation: true };
     }
   }
@@ -77,19 +74,28 @@ function writeString(
   startCol: number,
   text: string,
   style: CellStyle,
-  clipBounds: { x: number; y: number; w: number; h: number },
+  clipBounds: Bounds,
 ) {
   let col = startCol;
   for (const char of text) {
     const charWidth = stringWidth(char);
     if (charWidth === 0) {
-      // Zero-width char (combining mark, etc.)
-    } else {
-      writeChar(grid, row, col, char, style, clipBounds);
-      writeContinuationCells(grid, row, col, charWidth, style, clipBounds);
-      col += charWidth;
+      continue;
     }
+    writeChar(grid, row, col, char, style, clipBounds);
+    writeContinuationCells(grid, row, col, charWidth, style, clipBounds);
+    col += charWidth;
   }
+}
+
+function buildCellStyle(props: NodeProps): CellStyle {
+  return {
+    ...(props.color && { fg: props.color }),
+    ...(props.backgroundColor && { bg: props.backgroundColor }),
+    ...(props.bold && { bold: true }),
+    ...(props.italic && { italic: true }),
+    ...(props.underline && { underline: true }),
+  };
 }
 
 /**
@@ -99,8 +105,8 @@ function writeString(
 function renderNodeContent(
   grid: Cell[][],
   node: LayoutNode,
-  offsetX: number,
-  offsetY: number,
+  originX = 0,
+  originY = 0,
 ) {
   const { bounds } = node;
   if (!bounds) {
@@ -108,33 +114,18 @@ function renderNodeContent(
   }
 
   const { props } = node;
-  const style: CellStyle = {};
-  if (props.color) {
-    style.fg = props.color;
-  }
-  if (props.backgroundColor) {
-    style.bg = props.backgroundColor;
-  }
-  if (props.bold) {
-    style.bold = true;
-  }
-  if (props.italic) {
-    style.italic = true;
-  }
-  if (props.underline) {
-    style.underline = true;
-  }
+  const style = buildCellStyle(props);
 
-  const x = bounds.x + offsetX;
-  const y = bounds.y + offsetY;
+  const x = bounds.x + originX;
+  const y = bounds.y + originY;
 
   // Fill background color across the node's entire bounds
   if (style.bg) {
-    const gridHeight = grid.length;
-    const gridWidth = grid[0]?.length ?? 0;
-    for (let row = y; row < y + bounds.h; row++) {
-      for (let col = x; col < x + bounds.w; col++) {
-        if (row >= 0 && row < gridHeight && col >= 0 && col < gridWidth) {
+    const gh = grid.length;
+    const gw = gridWidth(grid);
+    for (let row = y; row < y + bounds.height; row++) {
+      for (let col = x; col < x + bounds.width; col++) {
+        if (row >= 0 && row < gh && col >= 0 && col < gw) {
           grid[row][col] = { char: " ", style: { bg: style.bg } };
         }
       }
@@ -144,8 +135,8 @@ function renderNodeContent(
   if (node.type === "box") {
     const boxProps = props as BoxNodeProps;
     if (boxProps.border) {
-      const borderStyle = (boxProps.borderStyle as BorderStyle) ?? "single";
-      writeBorder(grid, x, y, bounds.w, bounds.h, borderStyle, style);
+      const borderStyle = boxProps.borderStyle ?? "single";
+      writeBorder(grid, x, y, bounds.width, bounds.height, borderStyle, style);
     }
   }
 
@@ -153,10 +144,10 @@ function renderNodeContent(
     const textProps = props as TextNodeProps;
     const text = textProps.content ?? "";
     const wrapMode = textProps.wrap ? "wrap" : "nowrap";
-    const clipBounds = { x, y, w: bounds.w, h: bounds.h };
+    const clipBounds = { x, y, width: bounds.width, height: bounds.height };
 
     if (wrapMode === "wrap") {
-      const lines = wrapText(text, bounds.w);
+      const lines = wrapText(text, bounds.width);
       for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
         writeString(
           grid,
@@ -174,7 +165,7 @@ function renderNodeContent(
 }
 
 function rasterizeNode(grid: Cell[][], database: Database, node: LayoutNode) {
-  renderNodeContent(grid, node, 0, 0);
+  renderNodeContent(grid, node);
 
   for (const childId of node.childIds) {
     const child = database.nodes.get(childId);
@@ -185,7 +176,7 @@ function rasterizeNode(grid: Cell[][], database: Database, node: LayoutNode) {
 }
 
 /**
- * Rasterize a single node into its own grid (bounds.w x bounds.h).
+ * Rasterize a single node into its own grid (bounds.width x bounds.height).
  * Does NOT include children. Coordinates are relative to the node's origin.
  * Returns null if the node has no bounds.
  */
@@ -197,8 +188,8 @@ export function rasterizeOne(
   if (!node?.bounds) {
     return null;
   }
-  const { w, h } = node.bounds;
-  const grid = createGrid(w, h);
+  const { width, height } = node.bounds;
+  const grid = createGrid(width, height);
   renderNodeContent(grid, node, -node.bounds.x, -node.bounds.y);
   return grid;
 }

@@ -5,28 +5,29 @@ import type { NodeProps } from "./types.ts";
 export type { YogaNode };
 
 export interface Bounds {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
 }
 
+export type NodeType = "box" | "text";
+
 export interface LayoutNode {
-  id: string;
-  type: string;
+  readonly id: string;
+  readonly type: NodeType;
   props: NodeProps;
   parentId: string | null;
   childIds: string[];
   bounds: Bounds | null;
-  yogaNode: YogaNode;
+  readonly yogaNode: YogaNode;
 }
 
 export interface Database {
-  yoga: typeof yoga;
-  nodes: Map<string, LayoutNode>;
+  readonly yoga: typeof yoga;
+  readonly nodes: Map<string, LayoutNode>;
   rootId: string | null;
-  version: number;
-  listeners: Set<() => void>;
+  readonly listeners: Set<() => void>;
 }
 
 export function createDatabase(): Database {
@@ -34,7 +35,6 @@ export function createDatabase(): Database {
     yoga,
     nodes: new Map(),
     rootId: null,
-    version: 0,
     listeners: new Set(),
   };
 }
@@ -47,9 +47,19 @@ export function subscribe(
   return () => database.listeners.delete(listener);
 }
 
+let notifying = false;
+
 function notifyListeners(database: Database) {
-  for (const listener of database.listeners) {
-    listener();
+  if (notifying) {
+    return;
+  }
+  notifying = true;
+  try {
+    for (const listener of [...database.listeners]) {
+      listener();
+    }
+  } finally {
+    notifying = false;
   }
 }
 
@@ -57,7 +67,7 @@ export function addNode(
   database: Database,
   options: {
     id: string;
-    type: string;
+    type: NodeType;
     props: NodeProps;
     parentId: string | null;
   },
@@ -161,7 +171,7 @@ export function computeLayout(
     const w = Math.ceil(layout.width);
     const h = Math.ceil(layout.height);
 
-    node.bounds = { x, y, w, h };
+    node.bounds = { x, y, width: w, height: h };
 
     for (const childId of node.childIds) {
       extractBounds(childId, x, y);
@@ -170,6 +180,5 @@ export function computeLayout(
 
   extractBounds(database.rootId, 0, 0);
 
-  database.version++;
   notifyListeners(database);
 }

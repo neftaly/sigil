@@ -7,8 +7,6 @@ import type {
   StyleProps,
 } from "@charui/core";
 
-export type EventProps = EventHandlerProps;
-
 export interface BoxProps extends LayoutProps, EventHandlerProps, StyleProps {
   children?: ReactNode;
   borderStyle?: BorderStyle;

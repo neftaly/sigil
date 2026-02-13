@@ -1,10 +1,16 @@
 import { createContext, useContext } from "react";
 
-import type { Cell, Database, EventState } from "@charui/core";
+import type {
+  Database,
+  EventState,
+  FlushEmitter,
+  OverlayState,
+} from "@charui/core";
 
 export interface CharuiContextValue {
   database: Database;
   eventState: EventState;
+  overlayState: OverlayState;
 }
 
 export const CharuiContext = createContext<CharuiContextValue | null>(null);
@@ -17,9 +23,4 @@ export function useCharui(): CharuiContextValue {
   return ctx;
 }
 
-export interface DatabaseReporterValue {
-  report(database: Database, grid: Cell[][]): void;
-}
-
-export const DatabaseReporterContext =
-  createContext<DatabaseReporterValue | null>(null);
+export const FlushEmitterContext = createContext<FlushEmitter | null>(null);

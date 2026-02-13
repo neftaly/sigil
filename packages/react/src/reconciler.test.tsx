@@ -1,22 +1,10 @@
 import React from "react";
 import { describe, expect, it } from "vitest";
 
-import type { Cell, TextNodeProps } from "@charui/core";
+import { type TextNodeProps, gridToString } from "@charui/core";
 
 import { createRoot } from "./render.ts";
 import { Box, Text } from "./primitives.tsx";
-
-/** Inline helper to avoid dep on @charui/test-utils */
-function gridToString(grid: Cell[][]): string {
-  return grid
-    .map((row) =>
-      row
-        .filter((cell) => !cell.continuation)
-        .map((cell) => cell.char)
-        .join(""),
-    )
-    .join("\n");
-}
 
 describe("React reconciler", () => {
   it("renders a box with border via JSX", () => {
@@ -62,8 +50,8 @@ describe("React reconciler", () => {
     expect(children).toHaveLength(2);
 
     // First child at x=0, second at x=10
-    expect(children[0].bounds).toEqual({ x: 0, y: 0, w: 10, h: 1 });
-    expect(children[1].bounds).toEqual({ x: 10, y: 0, w: 10, h: 1 });
+    expect(children[0].bounds).toEqual({ x: 0, y: 0, width: 10, height: 1 });
+    expect(children[1].bounds).toEqual({ x: 10, y: 0, width: 10, height: 1 });
   });
 
   it("re-renders with changed props", () => {

@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Text } from "@react-three/drei";
 import { getTextRenderInfo } from "troika-three-text";
@@ -8,8 +15,26 @@ import {
   type CellStyle,
   type Database,
   type LayoutNode,
+  type OverlayState,
+  applyOverlaysToNodeGrid,
+  groupCells,
   rasterizeOne,
+  subscribe,
 } from "@charui/core";
+
+function useVersion(database: Database): number {
+  const versionRef = useRef(0);
+  const getSnapshot = useCallback(() => versionRef.current, []);
+  const sub = useCallback(
+    (onStoreChange: () => void) =>
+      subscribe(database, () => {
+        versionRef.current++;
+        onStoreChange();
+      }),
+    [database],
+  );
+  return useSyncExternalStore(sub, getSnapshot);
+}
 
 export interface FontSet {
   regular: string;
@@ -96,90 +121,90 @@ function TextRunMesh({
   fonts?: FontSet;
   cellW: number;
 }) {
+  const hasBg = Boolean(run.style.bg);
+  const runWidth = run.text.length * cellW;
+
   return (
-    <Text
-      font={pickFont(fonts, run.style)}
-      position={[
-        run.col * cellW,
-        -(run.row + 0.5) * CELL_H,
-        LAYER_SPACING / 2 + 0.01,
-      ]}
-      fontSize={FONT_SIZE}
-      color={run.style.fg ?? "#ccc"}
-      anchorX="left"
-      anchorY="middle"
-    >
-      {run.text}
-    </Text>
+    <group>
+      {hasBg && (
+        <mesh
+          position={[
+            run.col * cellW + runWidth / 2,
+            -(run.row + 0.5) * CELL_H,
+            LAYER_SPACING / 2 + 0.005,
+          ]}
+        >
+          <planeGeometry args={[runWidth, CELL_H]} />
+          <meshBasicMaterial color={run.style.bg!} />
+        </mesh>
+      )}
+      <Text
+        font={pickFont(fonts, run.style)}
+        position={[
+          run.col * cellW,
+          -(run.row + 0.5) * CELL_H,
+          LAYER_SPACING / 2 + 0.01,
+        ]}
+        fontSize={FONT_SIZE}
+        color={run.style.fg ?? "#ccc"}
+        anchorX="left"
+        anchorY="middle"
+      >
+        {run.text}
+      </Text>
+    </group>
   );
 }
 
 function NodePlane({
   node,
   database,
+  overlayState,
   depth,
   fonts,
   cellW,
 }: {
   node: LayoutNode;
   database: Database;
+  overlayState?: OverlayState;
   depth: number;
   fonts?: FontSet;
   cellW: number;
 }) {
+  const version = useVersion(database);
   const runs = useMemo(() => {
-    const grid = rasterizeOne(database, node.id);
+    let grid = rasterizeOne(database, node.id);
     if (!grid) {
       return [];
     }
+    if (overlayState && node.bounds) {
+      grid = applyOverlaysToNodeGrid(grid, node.bounds, overlayState);
+    }
     const result: TextRun[] = [];
     for (let row = 0; row < grid.length; row++) {
-      let current: TextRun | null = null;
-      for (let col = 0; col < (grid[0]?.length ?? 0); col++) {
-        const cell = grid[row][col];
-        if (cell.continuation) {
-          continue;
-        }
-        if (
-          current &&
-          current.style.fg === cell.style.fg &&
-          current.style.bold === cell.style.bold &&
-          current.style.italic === cell.style.italic
-        ) {
-          current.text += cell.char;
-        } else {
-          if (current) {
-            result.push(current);
-          }
-          current = { text: cell.char, col, row, style: cell.style };
-        }
-      }
-      if (current) {
-        result.push(current);
+      for (const span of groupCells(grid[row])) {
+        result.push({ text: span.text, col: span.col, row, style: span.style });
       }
     }
     return result;
-  }, [database, node.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- version signals database mutation
+  }, [database, version, node.id, node.bounds, overlayState]);
 
-  const hasBg = Boolean(node.props.backgroundColor);
+  const bgColor = node.props.backgroundColor;
 
   const faceMaterial = useMemo(
     () =>
-      hasBg
-        ? new THREE.MeshBasicMaterial({
-            color: node.props.backgroundColor as string,
-          })
+      bgColor
+        ? new THREE.MeshBasicMaterial({ color: bgColor })
         : new THREE.MeshBasicMaterial({
             transparent: true,
             opacity: 0,
             depthWrite: false,
           }),
-    [hasBg, node.props.backgroundColor],
+    [bgColor],
   );
 
-  const sideMaterial = getSideMaterial(
-    hasBg ? (node.props.backgroundColor as string) : "#555",
-  );
+  const sideMaterial = getSideMaterial(bgColor ?? "#555");
 
   // Box material order: +X, -X, +Y, -Y, +Z (front), -Z (back)
   const materials = useMemo(
@@ -199,7 +224,7 @@ function NodePlane({
     return null;
   }
 
-  const { x, y, w, h } = bounds;
+  const { x, y, width: w, height: h } = bounds;
 
   return (
     <group
@@ -226,7 +251,16 @@ function NodePlane({
   );
 }
 
-function Scene({ database, fonts }: { database: Database; fonts?: FontSet }) {
+function Scene({
+  database,
+  overlayState,
+  fonts,
+}: {
+  database: Database;
+  overlayState?: OverlayState;
+  fonts?: FontSet;
+}) {
+  const version = useVersion(database);
   const [cellW, setCellW] = useState<number | null>(null);
   const fontUrl = fonts?.regular;
 
@@ -249,11 +283,12 @@ function Scene({ database, fonts }: { database: Database; fonts?: FontSet }) {
       }
     }
     return result;
-  }, [database]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- version signals database mutation
+  }, [database, version]);
 
   const root = database.rootId ? database.nodes.get(database.rootId) : null;
-  const rootW = root?.bounds?.w ?? 0;
-  const rootH = root?.bounds?.h ?? 0;
+  const rootW = root?.bounds?.width ?? 0;
+  const rootH = root?.bounds?.height ?? 0;
 
   if (cellW === null) {
     return null;
@@ -266,6 +301,7 @@ function Scene({ database, fonts }: { database: Database; fonts?: FontSet }) {
           key={node.id}
           node={node}
           database={database}
+          overlayState={overlayState}
           depth={depth}
           fonts={fonts}
           cellW={cellW}
@@ -277,6 +313,7 @@ function Scene({ database, fonts }: { database: Database; fonts?: FontSet }) {
 
 export interface ExplodedSceneProps {
   database: Database;
+  overlayState?: OverlayState;
   interactive?: boolean;
   fonts?: FontSet;
 }
@@ -290,6 +327,7 @@ const noopEvents = () => ({
 
 export function ExplodedScene({
   database,
+  overlayState,
   interactive = true,
   fonts,
 }: ExplodedSceneProps) {
@@ -304,7 +342,7 @@ export function ExplodedScene({
     >
       {interactive && <OrbitControls />}
       <ambientLight intensity={1} />
-      <Scene database={database} fonts={fonts} />
+      <Scene database={database} overlayState={overlayState} fonts={fonts} />
     </Canvas>
   );
 }

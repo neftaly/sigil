@@ -24,9 +24,7 @@ export function renderToDOM(
   while (container.children.length < height) {
     const row = document.createElement("div");
     row.style.whiteSpace = "pre";
-    row.style.lineHeight = "1";
     row.style.fontFamily = "inherit";
-    row.style.height = "1em";
     container.appendChild(row);
   }
   while (container.children.length > height) {

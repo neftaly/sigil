@@ -198,7 +198,7 @@ export function CharuiCanvas({
         style={{
           fontFamily: "inherit",
           fontSize: "14px",
-          lineHeight: "1",
+          lineHeight: "normal",
           whiteSpace: "pre",
           cursor: "default",
           outline: "none",

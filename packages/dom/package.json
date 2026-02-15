@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@charui/core": "workspace:*",
-    "@charui/react": "workspace:*"
+    "@charui/react": "workspace:*",
+    "@neftaly/editcontext-polyfill": "^0.1.1"
   },
   "peerDependencies": {
     "react": "^19.0.0"

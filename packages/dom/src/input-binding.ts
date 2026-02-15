@@ -1,4 +1,5 @@
 /// <reference path="./editcontext.d.ts" />
+import "@neftaly/editcontext-polyfill";
 
 import {
   type PointerEvent as CharuiPointerEvent,

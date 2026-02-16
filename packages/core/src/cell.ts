@@ -35,16 +35,15 @@ export function groupCells(row: readonly Cell[]): CellSpan[] {
 
   for (let col = 0; col < row.length; col++) {
     const cell = row[col];
-    if (cell.continuation) {
-      continue;
-    }
-    if (current && styleEquals(current.style, cell.style)) {
-      current.text += cell.char;
-    } else {
-      if (current) {
-        spans.push(current);
+    if (!cell.continuation) {
+      if (current && styleEquals(current.style, cell.style)) {
+        current.text += cell.char;
+      } else {
+        if (current) {
+          spans.push(current);
+        }
+        current = { text: cell.char, col, style: cell.style };
       }
-      current = { text: cell.char, col, style: cell.style };
     }
   }
   if (current) {

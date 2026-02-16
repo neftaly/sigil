@@ -55,6 +55,10 @@ export interface LayoutProps {
   paddingLeft?: number;
   paddingRight?: number;
   margin?: number;
+  marginTop?: number;
+  marginBottom?: number;
+  marginLeft?: number;
+  marginRight?: number;
   border?: boolean;
   borderStyle?: BorderStyle;
   position?: "relative" | "absolute";

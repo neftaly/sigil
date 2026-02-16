@@ -274,7 +274,7 @@ export function dispatchPointerEvent(
   }
 
   // Update hover state and fire enter/leave before the main event,
-  // so any re-entrant dispatch sees the correct current state.
+  // So any re-entrant dispatch sees the correct current state.
   if (event.type === "pointermove" || event.type === "pointerdown") {
     updateHover(database, state, target, event);
   }

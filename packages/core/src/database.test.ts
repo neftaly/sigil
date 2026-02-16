@@ -140,7 +140,7 @@ describe("updateNode", () => {
     });
 
     updateNode(database, "root", { color: "#0f0" });
-    const props = database.nodes.get("root")!.props;
+    const { props } = database.nodes.get("root")!;
     expect(props.color).toBe("#0f0");
     expect((props as any).border).toBe(true);
   });

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createFlushEmitter, type FlushSnapshot } from "./flush-emitter.ts";
+import { type FlushSnapshot, createFlushEmitter } from "./flush-emitter.ts";
 import { createDatabase } from "./database.ts";
 import { createEventState } from "./events.ts";
 import { createOverlayState } from "./overlays.ts";
@@ -91,16 +91,16 @@ describe("createFlushEmitter", () => {
     const emitter = createFlushEmitter();
     const outer = makeSnapshot([[{ char: "1", style: {} }]]);
     const inner = makeSnapshot([[{ char: "2", style: {} }]]);
-    const cb = vi.fn();
+    const fn = vi.fn();
 
     emitter.subscribe((snapshot) => {
-      cb(snapshot);
+      fn(snapshot);
       // Re-entrant emit should be silently ignored
       emitter.emit(inner);
     });
 
     emitter.emit(outer);
-    expect(cb).toHaveBeenCalledTimes(1);
-    expect(cb).toHaveBeenCalledWith(outer);
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(fn).toHaveBeenCalledWith(outer);
   });
 });

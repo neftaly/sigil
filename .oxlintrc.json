@@ -17,6 +17,7 @@
     "suspicious": "error"
   },
   "rules": {
+    "no-await-in-loop": "off",
     "func-style": "off",
     "id-length": "off",
     "init-declarations": "off",

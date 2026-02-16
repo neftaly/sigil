@@ -105,6 +105,18 @@ export function applyYogaStyles(node: LayoutNode, props: NodeProps) {
   if (layoutProps.margin !== undefined) {
     yogaNode.setMargin(yoga.EDGE_ALL, layoutProps.margin);
   }
+  if (layoutProps.marginTop !== undefined) {
+    yogaNode.setMargin(yoga.EDGE_TOP, layoutProps.marginTop);
+  }
+  if (layoutProps.marginBottom !== undefined) {
+    yogaNode.setMargin(yoga.EDGE_BOTTOM, layoutProps.marginBottom);
+  }
+  if (layoutProps.marginLeft !== undefined) {
+    yogaNode.setMargin(yoga.EDGE_LEFT, layoutProps.marginLeft);
+  }
+  if (layoutProps.marginRight !== undefined) {
+    yogaNode.setMargin(yoga.EDGE_RIGHT, layoutProps.marginRight);
+  }
 
   if (layoutProps.border) {
     yogaNode.setBorder(yoga.EDGE_ALL, 1);

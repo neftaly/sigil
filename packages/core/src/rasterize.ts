@@ -79,12 +79,11 @@ function writeString(
   let col = startCol;
   for (const char of text) {
     const charWidth = stringWidth(char);
-    if (charWidth === 0) {
-      continue;
+    if (charWidth !== 0) {
+      writeChar(grid, row, col, char, style, clipBounds);
+      writeContinuationCells(grid, row, col, charWidth, style, clipBounds);
+      col += charWidth;
     }
-    writeChar(grid, row, col, char, style, clipBounds);
-    writeContinuationCells(grid, row, col, charWidth, style, clipBounds);
-    col += charWidth;
   }
 }
 

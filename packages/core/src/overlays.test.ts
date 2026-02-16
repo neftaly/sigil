@@ -53,7 +53,8 @@ describe("applyOverlays", () => {
     const grid = createGrid(3, 2);
     const state = createOverlayState();
     const result = applyOverlays(grid, state);
-    expect(result).toBe(grid); // same reference, no clone
+    // Same reference, no clone
+    expect(result).toBe(grid);
   });
 
   it("inverts fg/bg for a single cell", () => {
@@ -191,7 +192,7 @@ describe("applyOverlaysToNodeGrid", () => {
     );
     expect(result[0][0].style.fg).toBe("#000");
     expect(result[0][0].style.bg).toBe("#fff");
-    // col 1 untouched
+    // Col 1 untouched
     expect(result[0][1].style.fg).toBeUndefined();
   });
 

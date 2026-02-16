@@ -121,21 +121,19 @@ function applyTransformToRange(
   const width = gridWidth(grid);
 
   for (let row = range.startRow; row <= range.endRow; row++) {
-    if (row < 0 || row >= height) {
-      continue;
-    }
-    const rowStartCol = row === range.startRow ? range.startCol : 0;
-    const rowEndCol = row === range.endRow ? range.endCol : width - 1;
+    if (row >= 0 && row < height) {
+      const rowStartCol = row === range.startRow ? range.startCol : 0;
+      const rowEndCol = row === range.endRow ? range.endCol : width - 1;
 
-    for (let col = rowStartCol; col <= rowEndCol; col++) {
-      if (col < 0 || col >= width) {
-        continue;
+      for (let col = rowStartCol; col <= rowEndCol; col++) {
+        if (col >= 0 && col < width) {
+          const cell = grid[row][col];
+          grid[row][col] = {
+            ...cell,
+            style: applyTransform(cell.style, transform),
+          };
+        }
       }
-      const cell = grid[row][col];
-      grid[row][col] = {
-        ...cell,
-        style: applyTransform(cell.style, transform),
-      };
     }
   }
 }

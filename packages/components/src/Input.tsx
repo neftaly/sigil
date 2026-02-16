@@ -102,19 +102,23 @@ export function applyAction(
 
     switch (action.type) {
       case "moveLeft":
-        newStart = newEnd = Math.max(0, cursor - (collapsed ? 1 : 0));
+        newEnd = Math.max(0, cursor - (collapsed ? 1 : 0));
+        newStart = newEnd;
         break;
       case "moveRight":
-        newStart = newEnd = Math.min(
+        newEnd = Math.min(
           value.length,
           cursor + (collapsed ? 1 : 0),
         );
+        newStart = newEnd;
         break;
       case "home":
-        newStart = newEnd = 0;
+        newEnd = 0;
+        newStart = newEnd;
         break;
       case "end":
-        newStart = newEnd = value.length;
+        newEnd = value.length;
+        newStart = newEnd;
         break;
     }
   }
@@ -354,7 +358,7 @@ export function Input({
     }
     const s = stateRef.current;
 
-    // selectionStart is the anchor, selectionEnd follows the pointer
+    // SelectionStart is the anchor, selectionEnd follows the pointer
     updateAndSync({
       value: s.value,
       selectionStart: s.selectionStart,

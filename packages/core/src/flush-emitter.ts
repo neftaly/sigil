@@ -12,7 +12,7 @@ export interface FlushSnapshot {
 
 export interface FlushEmitter {
   emit(snapshot: FlushSnapshot): void;
-  subscribe(callback: (snapshot: FlushSnapshot) => void): () => void;
+  subscribe(listener: (snapshot: FlushSnapshot) => void): () => void;
 }
 
 export function createFlushEmitter(): FlushEmitter {
@@ -34,12 +34,12 @@ export function createFlushEmitter(): FlushEmitter {
         emitting = false;
       }
     },
-    subscribe(callback) {
-      listeners.add(callback);
+    subscribe(listener) {
+      listeners.add(listener);
       if (latest) {
-        callback(latest);
+        listener(latest);
       }
-      return () => listeners.delete(callback);
+      return () => listeners.delete(listener);
     },
   };
 }

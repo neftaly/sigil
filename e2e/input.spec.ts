@@ -55,10 +55,9 @@ test.describe("InputField", () => {
     await expect(getCanvas(page)).toContainText("abc");
 
     // Move left twice — wait for each to take effect by checking cursor position.
-    // The cursor overlay inverts the cell it's on, so the text content stays
-    // the same but the underlying value changes. We can't easily observe the
-    // cursor position from textContent alone, so we issue each keypress
-    // sequentially and give the reconciler a frame to flush.
+    // Cursor overlay inverts the cell it's on, so the text content stays the
+    // Same but the underlying value changes. Issue each keypress sequentially
+    // And give the reconciler a frame to flush.
     await page.keyboard.press("ArrowLeft");
     await page.keyboard.press("ArrowLeft");
 

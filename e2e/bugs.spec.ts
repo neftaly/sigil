@@ -23,7 +23,7 @@ function getGridText(page: import("@playwright/test").Page) {
 function rowHasCursor(page: import("@playwright/test").Page, rowIndex: number) {
   return getCanvas(page).evaluate((el, idx) => {
     const row = el.children[idx];
-    if (!row) return false;
+    if (!row) { return false; }
     return Array.from(row.children).some(
       (span) => (span as HTMLElement).style.backgroundColor !== "",
     );
@@ -148,7 +148,7 @@ test.describe("Bug: resize pointer capture", () => {
 
     // Drag FAR to the right - well past the box boundary
     // Tests pointer capture: without it, once mouse leaves the box,
-    // pointermove events stop going to it
+    // Pointermove events stop going to it
     await page.mouse.move(startX + 150, startY, { steps: 10 });
     await page.mouse.up();
 

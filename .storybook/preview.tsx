@@ -1,14 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import type { Preview } from "@storybook/react";
-import type {
-  Cell,
-  Database,
-  EventState,
-  OverlayState,
-  PointerEvent as CharuiPointerEvent,
-} from "@charui/core";
 import {
+  type Cell,
+  type PointerEvent as CharuiPointerEvent,
+  type Database,
+  type EventState,
   type FlushSnapshot,
+  type OverlayState,
   createFlushEmitter,
   dispatchPointerEvent,
   focusAndDispatch,
@@ -291,7 +289,7 @@ function TriPaneDecorator({
   const gridRef = useRef<Cell[][] | null>(null);
   const overlayRef = useRef<OverlayState | null>(null);
   const eventStateRef = useRef<EventState | null>(null);
-  const [tick, setTick] = useState(0);
+  const [, setTick] = useState(0);
 
   const config = FONTS[fontKey] ?? FONTS.hack;
 
@@ -301,15 +299,13 @@ function TriPaneDecorator({
 
   const [emitter] = useState(createFlushEmitter);
 
-  useEffect(() => {
-    return emitter.subscribe((snapshot: FlushSnapshot) => {
-      dbRef.current = snapshot.database;
-      gridRef.current = snapshot.grid;
-      overlayRef.current = snapshot.overlayState;
-      eventStateRef.current = snapshot.eventState;
-      setTick((t) => t + 1);
-    });
-  }, [emitter]);
+  useEffect(() => emitter.subscribe((snapshot: FlushSnapshot) => {
+    dbRef.current = snapshot.database;
+    gridRef.current = snapshot.grid;
+    overlayRef.current = snapshot.overlayState;
+    eventStateRef.current = snapshot.eventState;
+    setTick((t) => t + 1);
+  }), [emitter]);
 
   const paneStyle: React.CSSProperties = {
     flex: 1,

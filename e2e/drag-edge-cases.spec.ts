@@ -19,7 +19,7 @@ function getGridText(page: import("@playwright/test").Page) {
 /** Get the width of the first row's text (length of top border). */
 async function getFirstRowWidth(page: import("@playwright/test").Page) {
   const text = await getGridText(page);
-  const firstRow = text.split("\n")[0];
+  const [firstRow] = text.split("\n");
   // Count characters that are part of the border (non-space)
   return firstRow.trimEnd().length;
 }

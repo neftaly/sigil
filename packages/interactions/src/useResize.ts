@@ -52,7 +52,7 @@ export function useResize(options: UseResizeOptions): ResizeState {
 
   // Use refs for state read by event handlers to avoid stale closures.
   // React batches state updates, so DOM events can fire before the
-  // reconciler commits new props with updated callbacks.
+  // Reconciler commits new props with updated callbacks.
   const resizingRef = useRef(false);
   const sizeRef = useRef(size);
   sizeRef.current = size;

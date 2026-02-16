@@ -25,7 +25,7 @@ test("xterm pane renders content", async ({ page }) => {
   const xtermLabel = page.locator("span", { hasText: "xterm" });
   await expect(xtermLabel).toBeVisible({ timeout: 10000 });
 
-  // xterm renders rows as divs inside .xterm-rows
+  // Xterm renders rows as divs inside .xterm-rows
   const xtermRows = page.locator(".xterm-rows");
   await expect(xtermRows).toBeVisible({ timeout: 10000 });
 
@@ -40,7 +40,7 @@ test("three.js pane renders content", async ({ page }) => {
   const threeLabel = page.locator("span", { hasText: "three.js" });
   await expect(threeLabel).toBeVisible({ timeout: 10000 });
 
-  // three.js renders into a canvas element
+  // Three.js renders into a canvas element
   const canvas = page.locator("canvas");
   await expect(canvas).toBeVisible({ timeout: 10000 });
 });

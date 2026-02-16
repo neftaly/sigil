@@ -134,15 +134,15 @@ function gridToTextNode(
   for (const child of rowEl.childNodes) {
     const text = child.textContent ?? "";
     if (accumulated + text.length > col) {
-      // col is within this span's text node
+      // Col is within this span's text node
       const textNode = child.firstChild ?? child;
       return { node: textNode, offset: col - accumulated };
     }
     accumulated += text.length;
   }
 
-  // col is at or past end of row — point to end of last span
-  const lastChild = rowEl.lastChild;
+  // Col is at or past end of row — point to end of last span
+  const { lastChild } = rowEl;
   if (lastChild) {
     const textNode = lastChild.firstChild ?? lastChild;
     return { node: textNode, offset: (textNode.textContent ?? "").length };
@@ -178,7 +178,7 @@ export function syncSelectionToDOM(
     return;
   }
 
-  const range = selectionOverlay.ranges[0];
+  const [range] = selectionOverlay.ranges;
 
   // Only sync non-collapsed selections (cursor/caret is overlay-only)
   if (range.startRow === range.endRow && range.endCol - range.startCol <= 0) {

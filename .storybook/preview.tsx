@@ -11,14 +11,14 @@ import {
   dispatchPointerEvent,
   focusAndDispatch,
   releasePointerCapture,
-} from "@charui/core";
-import { FlushEmitterContext } from "@charui/dom";
+} from "../src/core/index.ts";
+import { FlushEmitterContext } from "../src/dom/index.ts";
 import {
   parseSGRMouse,
   syncSelectionToTerminal,
   toAnsi,
-} from "@charui/terminal";
-import { ExplodedScene, type FontSet } from "@charui/threedee";
+} from "../src/terminal/index.ts";
+import { ExplodedScene, type FontSet } from "../src/threedee/index.ts";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 

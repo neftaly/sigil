@@ -3,7 +3,7 @@ import topLevelAwait from "vite-plugin-top-level-await";
 import wasm from "vite-plugin-wasm";
 
 const config: StorybookConfig = {
-  stories: ["../packages/*/src/**/*.stories.@(ts|tsx)"],
+  stories: ["../src/**/*.stories.@(ts|tsx)"],
   framework: "@storybook/react-vite",
   viteFinal(config) {
     config.plugins = config.plugins ?? [];

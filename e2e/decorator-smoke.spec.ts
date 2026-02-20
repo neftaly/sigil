@@ -10,9 +10,9 @@ test("storybook decorator renders without uncaught errors", async ({
   const errors: string[] = [];
   page.on("pageerror", (err) => errors.push(err.message));
 
-  await page.goto(storyUrl("components-inputfield--input-field"));
+  await page.goto(storyUrl("charuicanvas--bordered-box-with-text"));
   await page
-    .locator("#storybook-root div[tabindex]")
+    .locator("#storybook-root canvas")
     .waitFor({ timeout: 10000 });
 
   expect(errors).toEqual([]);

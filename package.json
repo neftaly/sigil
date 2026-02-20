@@ -1,32 +1,69 @@
 {
-  "name": "charui",
+  "name": "@neftaly/sigil",
+  "version": "0.0.1",
   "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./dom": {
+      "types": "./dist/dom/index.d.ts",
+      "import": "./dist/dom/index.js"
+    },
+    "./terminal": {
+      "types": "./dist/terminal/index.d.ts",
+      "import": "./dist/terminal/index.js"
+    },
+    "./threedee": {
+      "types": "./dist/threedee/index.d.ts",
+      "import": "./dist/threedee/index.js"
+    }
+  },
+  "files": ["dist", "src"],
   "packageManager": "pnpm@10.28.1",
   "scripts": {
-    "dev": "turbo dev",
-    "build": "turbo build",
-    "lint": "oxlint && turbo lint",
-    "test": "turbo test",
+    "build": "tsup",
+    "lint": "oxlint && tsc --noEmit",
+    "test": "vitest run",
     "storybook": "storybook dev -p 6006",
     "playwright": "playwright test"
   },
+  "dependencies": {
+    "cli-boxes": "^4.0.1",
+    "string-width": "^7.2.0",
+    "yoga-layout": "^3.2.1",
+    "react-reconciler": "^0.33.0",
+    "@neftaly/editcontext-polyfill": "^0.1.1"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "optionalDependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
+    "three": "^0.182.0",
+    "troika-three-text": "^0.52.4"
+  },
   "devDependencies": {
-    "@charui/core": "workspace:*",
-    "@charui/dom": "workspace:*",
-    "@charui/terminal": "workspace:*",
-    "@charui/threedee": "workspace:*",
     "@types/react": "^19.2.14",
-    "@xterm/xterm": "^5.5.0",
-    "react": "^19.2.4",
+    "@types/three": "^0.182.0",
     "@playwright/test": "^1.58.2",
     "@storybook/react": "^10.2.8",
     "@storybook/react-vite": "^10.2.8",
+    "@xterm/xterm": "^5.5.0",
+    "fast-check": "^4.5.3",
     "oxlint": "^1.43.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "serve": "^14.2.5",
     "storybook": "^10.2.8",
-    "turbo": "^2.8.3",
+    "tsup": "^8.0.0",
+    "typescript": "^5.9.3",
     "vite": "^7.3.1",
     "vite-plugin-top-level-await": "^1.6.0",
-    "vite-plugin-wasm": "^3.5.0"
+    "vite-plugin-wasm": "^3.5.0",
+    "vitest": "^4.0.18"
   }
 }

@@ -3,6 +3,7 @@ import React, { useCallback, useState } from "react";
 import { Box, Text } from "../react/primitives.tsx";
 import { useTheme } from "../react/theme.tsx";
 import type { KeyEvent } from "../core/events.ts";
+import { useFocusState, getTextColor } from "./shared.ts";
 
 export interface RadioGroupProps {
   value: string;
@@ -18,7 +19,7 @@ export function RadioGroup({
   disabled = false,
 }: RadioGroupProps) {
   const theme = useTheme();
-  const [focused, setFocused] = useState(false);
+  const { focused, onFocus, onBlur } = useFocusState();
   const [focusIndex, setFocusIndex] = useState(0);
 
   const handleKeyDown = useCallback(
@@ -40,17 +41,7 @@ export function RadioGroup({
     [disabled, onChange, options, focusIndex],
   );
 
-  const handleFocus = useCallback(() => {
-    setFocused(true);
-  }, []);
-
-  const handleBlur = useCallback(() => {
-    setFocused(false);
-  }, []);
-
-  const textColor = disabled
-    ? theme.colors.textDim
-    : theme.colors.text;
+  const textColor = getTextColor({ disabled }, theme);
 
   return (
     <Box
@@ -58,8 +49,8 @@ export function RadioGroup({
       role="radiogroup"
       aria-disabled={disabled || undefined}
       onKeyDown={handleKeyDown}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
+      onFocus={onFocus}
+      onBlur={onBlur}
     >
       {options.map((option, i) => {
         const isSelected = option.value === value;

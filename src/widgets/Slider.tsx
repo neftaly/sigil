@@ -1,8 +1,9 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 
 import { Box, Text } from "../react/primitives.tsx";
 import { useTheme } from "../react/theme.tsx";
 import type { KeyEvent, PointerEvent } from "../core/events.ts";
+import { useFocusState, getTextColor } from "./shared.ts";
 
 export interface SliderProps {
   value: number;
@@ -26,7 +27,7 @@ export function Slider({
   disabled = false,
 }: SliderProps) {
   const theme = useTheme();
-  const [focused, setFocused] = useState(false);
+  const { focused, onFocus, onBlur } = useFocusState();
 
   const clamp = useCallback(
     (v: number) => Math.max(min, Math.min(max, v)),
@@ -83,14 +84,6 @@ export function Slider({
     [disabled, width, min, max, snap, onChange],
   );
 
-  const handleFocus = useCallback(() => {
-    setFocused(true);
-  }, []);
-
-  const handleBlur = useCallback(() => {
-    setFocused(false);
-  }, []);
-
   const ratio = max === min ? 0 : (value - min) / (max - min);
   const barWidth = width - 2; // subtract end caps
   const filledCount = Math.round(ratio * barWidth);
@@ -99,11 +92,7 @@ export function Slider({
   const leftCap = focused ? "\u255E" : "\u251C";
   const rightCap = focused ? "\u2561" : "\u2524";
 
-  const barColor = disabled
-    ? theme.colors.textDim
-    : focused
-      ? theme.colors.primary
-      : theme.colors.text;
+  const barColor = getTextColor({ disabled, focused }, theme);
 
   const filledChar = "\u2588";
   const emptyChar = "\u2591";
@@ -122,8 +111,8 @@ export function Slider({
       aria-disabled={disabled || undefined}
       onKeyDown={handleKeyDown}
       onPointerDown={handlePointerDown}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
+      onFocus={onFocus}
+      onBlur={onBlur}
     >
       <Text color={barColor}>
         {leftCap}

@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Box, Text } from "../react/primitives.tsx";
 import { useTheme } from "../react/theme.tsx";
 import type { KeyEvent } from "../core/events.ts";
+import { useFocusState, getBorderProps } from "./shared.ts";
 
 export interface TextAreaProps {
   value: string;
@@ -58,6 +59,165 @@ function logicalToDisplayRow(
   return displayRow;
 }
 
+/**
+ * Handle navigation keys: ArrowLeft, ArrowRight, ArrowUp, ArrowDown, Home, End.
+ * Returns true if the event was handled.
+ */
+function handleNavigation(
+  event: KeyEvent,
+  currentLines: string[],
+  setCursor: React.Dispatch<React.SetStateAction<CursorPos>>,
+): boolean | undefined {
+  if (event.key === "ArrowLeft") {
+    setCursor((c) => {
+      if (c.col > 0) return { line: c.line, col: c.col - 1 };
+      if (c.line > 0) {
+        const prevLine = currentLines[c.line - 1] ?? "";
+        return { line: c.line - 1, col: prevLine.length };
+      }
+      return c;
+    });
+    return true;
+  }
+
+  if (event.key === "ArrowRight") {
+    setCursor((c) => {
+      const currentLine = currentLines[c.line] ?? "";
+      if (c.col < currentLine.length)
+        return { line: c.line, col: c.col + 1 };
+      if (c.line < currentLines.length - 1)
+        return { line: c.line + 1, col: 0 };
+      return c;
+    });
+    return true;
+  }
+
+  if (event.key === "ArrowUp") {
+    setCursor((c) => {
+      if (c.line > 0) {
+        const prevLine = currentLines[c.line - 1] ?? "";
+        return { line: c.line - 1, col: Math.min(c.col, prevLine.length) };
+      }
+      return c;
+    });
+    return true;
+  }
+
+  if (event.key === "ArrowDown") {
+    setCursor((c) => {
+      if (c.line < currentLines.length - 1) {
+        const nextLine = currentLines[c.line + 1] ?? "";
+        return { line: c.line + 1, col: Math.min(c.col, nextLine.length) };
+      }
+      return c;
+    });
+    return true;
+  }
+
+  if (event.key === "Home") {
+    setCursor((c) => ({ line: c.line, col: 0 }));
+    return true;
+  }
+
+  if (event.key === "End") {
+    setCursor((c) => ({
+      line: c.line,
+      col: (currentLines[c.line] ?? "").length,
+    }));
+    return true;
+  }
+}
+
+/**
+ * Handle editing keys: Enter, Backspace, Delete.
+ * Returns true if the event was handled.
+ */
+function handleEditing(
+  event: KeyEvent,
+  currentLines: string[],
+  cursor: CursorPos,
+  setCursor: React.Dispatch<React.SetStateAction<CursorPos>>,
+  onChange: ((value: string) => void) | undefined,
+): boolean | undefined {
+  if (event.key === "Enter") {
+    const line = currentLines[cursor.line] ?? "";
+    const before = line.slice(0, cursor.col);
+    const after = line.slice(cursor.col);
+    const newLines = [...currentLines];
+    newLines.splice(cursor.line, 1, before, after);
+    setCursor({ line: cursor.line + 1, col: 0 });
+    onChange?.(newLines.join("\n"));
+    return true;
+  }
+
+  if (event.key === "Backspace") {
+    if (cursor.col > 0) {
+      const line = currentLines[cursor.line] ?? "";
+      const newLine =
+        line.slice(0, cursor.col - 1) + line.slice(cursor.col);
+      const newLines = [...currentLines];
+      newLines[cursor.line] = newLine;
+      setCursor((c) => ({ line: c.line, col: c.col - 1 }));
+      onChange?.(newLines.join("\n"));
+    } else if (cursor.line > 0) {
+      // Merge with previous line.
+      const prevLine = currentLines[cursor.line - 1] ?? "";
+      const currentLine = currentLines[cursor.line] ?? "";
+      const newLines = [...currentLines];
+      newLines.splice(cursor.line - 1, 2, prevLine + currentLine);
+      setCursor({ line: cursor.line - 1, col: prevLine.length });
+      onChange?.(newLines.join("\n"));
+    }
+    return true;
+  }
+
+  if (event.key === "Delete") {
+    const line = currentLines[cursor.line] ?? "";
+    if (cursor.col < line.length) {
+      const newLine =
+        line.slice(0, cursor.col) + line.slice(cursor.col + 1);
+      const newLines = [...currentLines];
+      newLines[cursor.line] = newLine;
+      onChange?.(newLines.join("\n"));
+    } else if (cursor.line < currentLines.length - 1) {
+      // Merge with next line.
+      const nextLine = currentLines[cursor.line + 1] ?? "";
+      const newLines = [...currentLines];
+      newLines.splice(cursor.line, 2, line + nextLine);
+      onChange?.(newLines.join("\n"));
+    }
+    return true;
+  }
+}
+
+/**
+ * Handle printable character insertion.
+ * Returns true if the event was handled.
+ */
+function handleTextInsertion(
+  event: KeyEvent,
+  currentLines: string[],
+  cursor: CursorPos,
+  setCursor: React.Dispatch<React.SetStateAction<CursorPos>>,
+  onChange: ((value: string) => void) | undefined,
+): boolean | undefined {
+  if (
+    event.key.length === 1 &&
+    !event.ctrlKey &&
+    !event.altKey &&
+    !event.metaKey
+  ) {
+    const line = currentLines[cursor.line] ?? "";
+    const newLine =
+      line.slice(0, cursor.col) + event.key + line.slice(cursor.col);
+    const newLines = [...currentLines];
+    newLines[cursor.line] = newLine;
+    setCursor((c) => ({ line: c.line, col: c.col + 1 }));
+    onChange?.(newLines.join("\n"));
+    return true;
+  }
+}
+
 export function TextArea({
   value,
   onChange,
@@ -70,7 +230,7 @@ export function TextArea({
   "aria-label": ariaLabel,
 }: TextAreaProps) {
   const theme = useTheme();
-  const [focused, setFocused] = useState(false);
+  const { focused, onFocus, onBlur } = useFocusState();
   const [cursor, setCursor] = useState<CursorPos>({ line: 0, col: 0 });
   const [scrollY, setScrollY] = useState(0);
 
@@ -125,155 +285,28 @@ export function TextArea({
 
       const currentLines = value.split("\n");
 
-      if (event.key === "ArrowLeft") {
-        setCursor((c) => {
-          if (c.col > 0) return { line: c.line, col: c.col - 1 };
-          if (c.line > 0) {
-            const prevLine = currentLines[c.line - 1] ?? "";
-            return { line: c.line - 1, col: prevLine.length };
-          }
-          return c;
-        });
-        return true;
-      }
-
-      if (event.key === "ArrowRight") {
-        setCursor((c) => {
-          const currentLine = currentLines[c.line] ?? "";
-          if (c.col < currentLine.length)
-            return { line: c.line, col: c.col + 1 };
-          if (c.line < currentLines.length - 1)
-            return { line: c.line + 1, col: 0 };
-          return c;
-        });
-        return true;
-      }
-
-      if (event.key === "ArrowUp") {
-        setCursor((c) => {
-          if (c.line > 0) {
-            const prevLine = currentLines[c.line - 1] ?? "";
-            return { line: c.line - 1, col: Math.min(c.col, prevLine.length) };
-          }
-          return c;
-        });
-        return true;
-      }
-
-      if (event.key === "ArrowDown") {
-        setCursor((c) => {
-          if (c.line < currentLines.length - 1) {
-            const nextLine = currentLines[c.line + 1] ?? "";
-            return { line: c.line + 1, col: Math.min(c.col, nextLine.length) };
-          }
-          return c;
-        });
-        return true;
-      }
-
-      if (event.key === "Home") {
-        setCursor((c) => ({ line: c.line, col: 0 }));
-        return true;
-      }
-
-      if (event.key === "End") {
-        setCursor((c) => ({
-          line: c.line,
-          col: (currentLines[c.line] ?? "").length,
-        }));
-        return true;
-      }
+      // Navigation keys (always available).
+      const navResult = handleNavigation(event, currentLines, setCursor);
+      if (navResult) return true;
 
       if (readOnly) return;
 
-      if (event.key === "Enter") {
-        const line = currentLines[cursor.line] ?? "";
-        const before = line.slice(0, cursor.col);
-        const after = line.slice(cursor.col);
-        const newLines = [...currentLines];
-        newLines.splice(cursor.line, 1, before, after);
-        setCursor({ line: cursor.line + 1, col: 0 });
-        onChange?.(newLines.join("\n"));
-        return true;
-      }
-
-      if (event.key === "Backspace") {
-        if (cursor.col > 0) {
-          const line = currentLines[cursor.line] ?? "";
-          const newLine =
-            line.slice(0, cursor.col - 1) + line.slice(cursor.col);
-          const newLines = [...currentLines];
-          newLines[cursor.line] = newLine;
-          setCursor((c) => ({ line: c.line, col: c.col - 1 }));
-          onChange?.(newLines.join("\n"));
-        } else if (cursor.line > 0) {
-          // Merge with previous line.
-          const prevLine = currentLines[cursor.line - 1] ?? "";
-          const currentLine = currentLines[cursor.line] ?? "";
-          const newLines = [...currentLines];
-          newLines.splice(cursor.line - 1, 2, prevLine + currentLine);
-          setCursor({ line: cursor.line - 1, col: prevLine.length });
-          onChange?.(newLines.join("\n"));
-        }
-        return true;
-      }
-
-      if (event.key === "Delete") {
-        const line = currentLines[cursor.line] ?? "";
-        if (cursor.col < line.length) {
-          const newLine =
-            line.slice(0, cursor.col) + line.slice(cursor.col + 1);
-          const newLines = [...currentLines];
-          newLines[cursor.line] = newLine;
-          onChange?.(newLines.join("\n"));
-        } else if (cursor.line < currentLines.length - 1) {
-          // Merge with next line.
-          const nextLine = currentLines[cursor.line + 1] ?? "";
-          const newLines = [...currentLines];
-          newLines.splice(cursor.line, 2, line + nextLine);
-          onChange?.(newLines.join("\n"));
-        }
-        return true;
-      }
+      // Editing keys (Enter, Backspace, Delete).
+      const editResult = handleEditing(event, currentLines, cursor, setCursor, onChange);
+      if (editResult) return true;
 
       // Printable character insertion.
-      if (
-        event.key.length === 1 &&
-        !event.ctrlKey &&
-        !event.altKey &&
-        !event.metaKey
-      ) {
-        const line = currentLines[cursor.line] ?? "";
-        const newLine =
-          line.slice(0, cursor.col) + event.key + line.slice(cursor.col);
-        const newLines = [...currentLines];
-        newLines[cursor.line] = newLine;
-        setCursor((c) => ({ line: c.line, col: c.col + 1 }));
-        onChange?.(newLines.join("\n"));
-        return true;
-      }
+      return handleTextInsertion(event, currentLines, cursor, setCursor, onChange);
     },
     [disabled, readOnly, value, cursor, onChange],
   );
 
-  const handleFocus = useCallback(() => {
-    setFocused(true);
-  }, []);
-
-  const handleBlur = useCallback(() => {
-    setFocused(false);
-  }, []);
-
   // Border styling.
-  const borderStyle = focused
-    ? theme.borders.focused
-    : theme.borders.default;
+  const { borderStyle, borderColor: focusBorderColor } = getBorderProps(focused, theme);
 
   const borderColor = disabled
     ? theme.colors.textDim
-    : focused
-      ? theme.colors.focusBorder
-      : theme.colors.border;
+    : focusBorderColor;
 
   const textColor = disabled ? theme.colors.textDim : theme.colors.text;
 
@@ -377,8 +410,8 @@ export function TextArea({
       aria-label={ariaLabel}
       aria-disabled={disabled || undefined}
       onKeyDown={handleKeyDown}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
+      onFocus={onFocus}
+      onBlur={onBlur}
     >
       {canScrollUp && (
         <Text color={theme.colors.textDim}>

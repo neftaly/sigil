@@ -25,6 +25,7 @@ export function Panel({
       borderStyle={borderStyle ?? theme.borders.default}
       color={theme.colors.border}
       width={width}
+      role="group"
     >
       {title && <Text bold color={theme.colors.text}>{title}</Text>}
       {children}

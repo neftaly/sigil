@@ -14,14 +14,14 @@ export function Divider({
 
   if (direction === "vertical") {
     return (
-      <Box width={1} flexGrow={1}>
+      <Box width={1} flexGrow={1} role="separator">
         <Text color={theme.colors.border}>{"\u2502"}</Text>
       </Box>
     );
   }
 
   return (
-    <Box flexGrow={1}>
+    <Box flexGrow={1} role="separator">
       <Text color={theme.colors.border}>{"\u2500".repeat(80)}</Text>
     </Box>
   );

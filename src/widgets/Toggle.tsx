@@ -1,8 +1,9 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 
 import { Box, Text } from "../react/primitives.tsx";
 import { useTheme } from "../react/theme.tsx";
 import type { KeyEvent } from "../core/events.ts";
+import { useFocusState, getTextColor } from "./shared.ts";
 
 export interface ToggleProps {
   checked: boolean;
@@ -18,7 +19,7 @@ export function Toggle({
   disabled = false,
 }: ToggleProps) {
   const theme = useTheme();
-  const [focused, setFocused] = useState(false);
+  const { focused, onFocus, onBlur } = useFocusState();
 
   const toggle = useCallback(() => {
     if (disabled) return;
@@ -40,22 +41,10 @@ export function Toggle({
     toggle();
   }, [toggle]);
 
-  const handleFocus = useCallback(() => {
-    setFocused(true);
-  }, []);
-
-  const handleBlur = useCallback(() => {
-    setFocused(false);
-  }, []);
-
   const track = checked ? "\u25CF\u2501\u2501" : "\u2501\u2501\u25CB";
   const prefix = focused ? "\u25B8 " : "";
 
-  const textColor = disabled
-    ? theme.colors.textDim
-    : focused
-      ? theme.colors.primary
-      : theme.colors.text;
+  const textColor = getTextColor({ disabled, focused }, theme);
 
   return (
     <Box
@@ -67,8 +56,8 @@ export function Toggle({
       aria-disabled={disabled || undefined}
       onKeyDown={handleKeyDown}
       onPointerDown={handlePointerDown}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
+      onFocus={onFocus}
+      onBlur={onBlur}
     >
       <Text color={textColor} italic={disabled}>
         {prefix}{track}

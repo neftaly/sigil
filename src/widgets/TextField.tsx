@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Box, Text } from "../react/primitives.tsx";
 import { useTheme } from "../react/theme.tsx";
 import type { KeyEvent } from "../core/events.ts";
+import { useFocusState, getBorderProps } from "./shared.ts";
 
 export interface TextFieldProps {
   value: string;
@@ -28,7 +29,7 @@ export function TextField({
   "aria-label": ariaLabel,
 }: TextFieldProps) {
   const theme = useTheme();
-  const [focused, setFocused] = useState(false);
+  const { focused, onFocus, onBlur } = useFocusState();
   const [cursor, setCursor] = useState(value.length);
   const [scrollOffset, setScrollOffset] = useState(0);
 
@@ -105,14 +106,6 @@ export function TextField({
     [disabled, readOnly, value, cursor, charLimit, onChange],
   );
 
-  const handleFocus = useCallback(() => {
-    setFocused(true);
-  }, []);
-
-  const handleBlur = useCallback(() => {
-    setFocused(false);
-  }, []);
-
   // Build the display string based on echo mode.
   let displayText: string;
   if (echoMode === "password") {
@@ -139,15 +132,11 @@ export function TextField({
   const cursorInView = cursor - scrollOffset;
 
   // Border styling.
-  const borderStyle = focused
-    ? theme.borders.focused
-    : theme.borders.default;
+  const { borderStyle, borderColor: focusBorderColor } = getBorderProps(focused, theme);
 
   const borderColor = disabled
     ? theme.colors.textDim
-    : focused
-      ? theme.colors.focusBorder
-      : theme.colors.border;
+    : focusBorderColor;
 
   const textColor = disabled ? theme.colors.textDim : theme.colors.text;
 
@@ -194,8 +183,8 @@ export function TextField({
       aria-label={ariaLabel}
       aria-disabled={disabled || undefined}
       onKeyDown={handleKeyDown}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
+      onFocus={onFocus}
+      onBlur={onBlur}
     >
       {content}
     </Box>

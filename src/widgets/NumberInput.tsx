@@ -1,8 +1,9 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 
 import { Box, Text } from "../react/primitives.tsx";
 import { useTheme } from "../react/theme.tsx";
 import type { KeyEvent } from "../core/events.ts";
+import { useFocusState, getTextColor } from "./shared.ts";
 
 export interface NumberInputProps {
   value: number;
@@ -24,7 +25,7 @@ export function NumberInput({
   disabled = false,
 }: NumberInputProps) {
   const theme = useTheme();
-  const [focused, setFocused] = useState(false);
+  const { focused, onFocus, onBlur } = useFocusState();
 
   const clamp = useCallback(
     (v: number) => Math.max(min, Math.min(max, v)),
@@ -72,14 +73,6 @@ export function NumberInput({
     [disabled, increment, decrement, min, max, onChange],
   );
 
-  const handleFocus = useCallback(() => {
-    setFocused(true);
-  }, []);
-
-  const handleBlur = useCallback(() => {
-    setFocused(false);
-  }, []);
-
   const atMin = value <= min;
   const atMax = value >= max;
 
@@ -90,11 +83,7 @@ export function NumberInput({
     ? theme.colors.textDim
     : theme.colors.text;
 
-  const valueColor = disabled
-    ? theme.colors.textDim
-    : focused
-      ? theme.colors.primary
-      : theme.colors.text;
+  const valueColor = getTextColor({ disabled, focused }, theme);
 
   const valueStr = String(value);
   const display = focused
@@ -112,8 +101,8 @@ export function NumberInput({
       aria-label={label}
       aria-disabled={disabled || undefined}
       onKeyDown={handleKeyDown}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
+      onFocus={onFocus}
+      onBlur={onBlur}
     >
       <Text color={leftArrowColor}>{"\u25C0"}</Text>
       {focused ? (

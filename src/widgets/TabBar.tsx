@@ -1,8 +1,9 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 
 import { Box, Text } from "../react/primitives.tsx";
 import { useTheme } from "../react/theme.tsx";
 import type { KeyEvent } from "../core/events.ts";
+import { useFocusState } from "./shared.ts";
 
 export interface TabBarProps {
   value: string;
@@ -16,7 +17,7 @@ export function TabBar({
   tabs,
 }: TabBarProps) {
   const theme = useTheme();
-  const [focused, setFocused] = useState(false);
+  const { focused, onFocus, onBlur } = useFocusState();
 
   const findNextEnabled = useCallback(
     (fromIndex: number, direction: 1 | -1): number => {
@@ -53,21 +54,13 @@ export function TabBar({
     [tabs, value, onChange, findNextEnabled],
   );
 
-  const handleFocus = useCallback(() => {
-    setFocused(true);
-  }, []);
-
-  const handleBlur = useCallback(() => {
-    setFocused(false);
-  }, []);
-
   return (
     <Box
       focusable
       role="tablist"
       onKeyDown={handleKeyDown}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
+      onFocus={onFocus}
+      onBlur={onBlur}
       flexDirection="row"
     >
       {tabs.map((tab) => {

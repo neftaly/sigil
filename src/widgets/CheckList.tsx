@@ -3,6 +3,7 @@ import React, { useCallback, useState } from "react";
 import { Box, Text } from "../react/primitives.tsx";
 import { useTheme } from "../react/theme.tsx";
 import type { KeyEvent } from "../core/events.ts";
+import { useFocusState, getBorderProps, getTextColor, useScrollWindow } from "./shared.ts";
 
 export interface CheckListProps {
   value: string[];
@@ -22,20 +23,9 @@ export function CheckList({
   disabled = false,
 }: CheckListProps) {
   const theme = useTheme();
-  const [focused, setFocused] = useState(false);
+  const { focused, onFocus, onBlur } = useFocusState();
   const [focusIndex, setFocusIndex] = useState(0);
-  const [scrollOffset, setScrollOffset] = useState(0);
-
-  const ensureVisible = useCallback(
-    (index: number) => {
-      setScrollOffset((offset) => {
-        if (index < offset) return index;
-        if (index >= offset + height) return index - height + 1;
-        return offset;
-      });
-    },
-    [height],
-  );
+  const { scrollOffset, ensureVisible } = useScrollWindow(height);
 
   const toggleItem = useCallback(
     (itemValue: string) => {
@@ -88,20 +78,7 @@ export function CheckList({
     [disabled, options, focusIndex, toggleItem, ensureVisible],
   );
 
-  const handleFocus = useCallback(() => {
-    setFocused(true);
-  }, []);
-
-  const handleBlur = useCallback(() => {
-    setFocused(false);
-  }, []);
-
-  const borderStyle = focused
-    ? theme.borders.focused
-    : theme.borders.default;
-  const borderColor = focused
-    ? theme.colors.focusBorder
-    : theme.colors.border;
+  const { borderStyle, borderColor } = getBorderProps(focused, theme);
 
   const visibleOptions = options.slice(scrollOffset, scrollOffset + height);
   const hasMoreAbove = scrollOffset > 0;
@@ -117,8 +94,8 @@ export function CheckList({
       role="listbox"
       aria-disabled={disabled || undefined}
       onKeyDown={handleKeyDown}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
+      onFocus={onFocus}
+      onBlur={onBlur}
     >
       {hasMoreAbove && (
         <Text color={theme.colors.textDim}>{"\u25B2"}</Text>

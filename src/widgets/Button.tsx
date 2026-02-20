@@ -3,6 +3,7 @@ import React, { useCallback, useState } from "react";
 import { Box, Text } from "../react/primitives.tsx";
 import { useTheme } from "../react/theme.tsx";
 import type { KeyEvent } from "../core/events.ts";
+import { useFocusState, getBorderProps, getTextColor } from "./shared.ts";
 
 export interface ButtonProps {
   label: string;
@@ -18,7 +19,7 @@ export function Button({
   variant = "default",
 }: ButtonProps) {
   const theme = useTheme();
-  const [focused, setFocused] = useState(false);
+  const { focused, onFocus, onBlur: focusBlur } = useFocusState();
   const [pressed, setPressed] = useState(false);
 
   const variantColor =
@@ -34,15 +35,10 @@ export function Button({
       ? theme.colors.primary
       : variantColor;
 
-  const borderColor = disabled
+  const { borderStyle, borderColor } = getBorderProps(focused, theme);
+  const disabledBorderColor = disabled
     ? theme.colors.textDim
-    : focused
-      ? theme.colors.focusBorder
-      : theme.colors.border;
-
-  const borderStyle = focused
-    ? theme.borders.focused
-    : theme.borders.default;
+    : borderColor;
 
   const handleKeyDown = useCallback(
     (event: KeyEvent) => {
@@ -66,20 +62,16 @@ export function Button({
     onPress?.();
   }, [disabled, onPress]);
 
-  const handleFocus = useCallback(() => {
-    setFocused(true);
-  }, []);
-
   const handleBlur = useCallback(() => {
-    setFocused(false);
+    focusBlur();
     setPressed(false);
-  }, []);
+  }, [focusBlur]);
 
   return (
     <Box
       border
       borderStyle={borderStyle}
-      color={pressed ? undefined : borderColor}
+      color={pressed ? undefined : disabledBorderColor}
       focusable={!disabled}
       role="button"
       aria-label={label}
@@ -87,7 +79,7 @@ export function Button({
       onKeyDown={handleKeyDown}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
-      onFocus={handleFocus}
+      onFocus={onFocus}
       onBlur={handleBlur}
     >
       <Text

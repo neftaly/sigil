@@ -1,8 +1,9 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 
 import { Box, Text } from "../react/primitives.tsx";
 import { useTheme } from "../react/theme.tsx";
 import type { KeyEvent } from "../core/events.ts";
+import { useFocusState, getTextColor } from "./shared.ts";
 
 export interface CheckBoxProps {
   checked: boolean;
@@ -20,7 +21,7 @@ export function CheckBox({
   indeterminate = false,
 }: CheckBoxProps) {
   const theme = useTheme();
-  const [focused, setFocused] = useState(false);
+  const { focused, onFocus, onBlur } = useFocusState();
 
   const toggle = useCallback(() => {
     if (disabled) return;
@@ -42,14 +43,6 @@ export function CheckBox({
     toggle();
   }, [toggle]);
 
-  const handleFocus = useCallback(() => {
-    setFocused(true);
-  }, []);
-
-  const handleBlur = useCallback(() => {
-    setFocused(false);
-  }, []);
-
   let indicator: string;
   if (disabled) {
     indicator = "[-]";
@@ -67,11 +60,7 @@ export function CheckBox({
     ? "mixed"
     : checked;
 
-  const textColor = disabled
-    ? theme.colors.textDim
-    : focused
-      ? theme.colors.primary
-      : theme.colors.text;
+  const textColor = getTextColor({ disabled, focused }, theme);
 
   return (
     <Box
@@ -83,8 +72,8 @@ export function CheckBox({
       aria-disabled={disabled || undefined}
       onKeyDown={handleKeyDown}
       onPointerDown={handlePointerDown}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
+      onFocus={onFocus}
+      onBlur={onBlur}
     >
       <Text color={textColor} italic={disabled}>
         {indicator}

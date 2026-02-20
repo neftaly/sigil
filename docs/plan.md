@@ -407,21 +407,21 @@ After v1 ships:
 
 ## Shipping blockers (v1 checklist)
 
-- [ ] Docs site browsable (static design review)
-- [ ] Single-package restructure + rename
-- [ ] Build step (tsup + subpath exports)
-- [ ] CI pipeline (lint + test + build + site)
-- [ ] Patches + compositor
-- [ ] Event stopPropagation
-- [ ] Interaction reducers
-- [ ] Keymap system
-- [ ] Viewport resize
-- [ ] Scroll (Box props + indicators + scroll-into-view)
-- [ ] React hooks (useSelection, useRange, useTextInput, etc.)
-- [ ] FocusTrap + ThemeProvider
-- [ ] Box prop gaps (z, scroll, focusable, role, aria-*, events, embed)
-- [ ] Nested Text fix
-- [ ] ARIA manager (DOM)
-- [ ] Terminal input source + TerminalCanvas
-- [ ] All 16 widgets with interactive docs site demos
-- [ ] Hello world works in both DOM and terminal
+- [x] Docs site browsable (static design review)
+- [x] Single-package restructure + rename
+- [x] Build step (tsup + subpath exports)
+- [x] CI pipeline (lint + test + build + site)
+- [x] Patches + compositor
+- [x] Event stopPropagation
+- [x] Interaction reducers
+- [x] Keymap system
+- [x] Viewport resize
+- [x] Scroll (Box props + indicators + scroll-into-view)
+- [x] React hooks (useSelection, useRange, useTextInput, etc.)
+- [x] FocusTrap + ThemeProvider
+- [x] Box prop gaps (z, scroll, focusable, role, aria-*, events, embed)
+- [x] Nested Text fix
+- [x] ARIA manager (DOM)
+- [x] Terminal input source + TerminalCanvas
+- [x] All 16 widgets with interactive docs site demos
+- [x] Hello world works in both DOM and terminal

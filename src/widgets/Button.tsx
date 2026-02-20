@@ -3,7 +3,7 @@ import React, { useCallback, useState } from "react";
 import { Box, Text } from "../react/primitives.tsx";
 import { useTheme } from "../react/theme.tsx";
 import type { KeyEvent } from "../core/events.ts";
-import { useFocusState, getBorderProps, getTextColor } from "./shared.ts";
+import { getBorderProps, useFocusState } from "./shared.ts";
 
 export interface ButtonProps {
   label: string;

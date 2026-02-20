@@ -3,7 +3,7 @@ import React, { useCallback } from "react";
 import { Box, Text } from "../react/primitives.tsx";
 import { useTheme } from "../react/theme.tsx";
 import type { KeyEvent } from "../core/events.ts";
-import { useFocusState, getTextColor } from "./shared.ts";
+import { getTextColor, useFocusState } from "./shared.ts";
 
 export interface NumberInputProps {
   value: number;
@@ -86,9 +86,6 @@ export function NumberInput({
   const valueColor = getTextColor({ disabled, focused }, theme);
 
   const valueStr = String(value);
-  const display = focused
-    ? `\u25C0[ ${valueStr} ]\u25B6`
-    : `\u25C0  ${valueStr}  \u25B6`;
 
   return (
     <Box

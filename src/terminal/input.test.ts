@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseInput, type ParsedEvent } from "./input.ts";
+import { type ParsedEvent, parseInput } from "./input.ts";
 
 // --- Helpers ---
 

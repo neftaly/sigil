@@ -1,5 +1,5 @@
 import React from "react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { createRoot } from "../react/render.ts";
 import { Box, Text } from "../react/primitives.tsx";

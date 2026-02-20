@@ -1,4 +1,4 @@
-name: Build Storybook
+name: CI
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  build:
+  ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,4 +20,12 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - run: pnpm lint
+
+      - run: pnpm test
+
+      - run: pnpm build
+
       - run: pnpm storybook build
+
+      - run: cd site && pnpm build

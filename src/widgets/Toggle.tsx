@@ -3,7 +3,7 @@ import React, { useCallback } from "react";
 import { Box, Text } from "../react/primitives.tsx";
 import { useTheme } from "../react/theme.tsx";
 import type { KeyEvent } from "../core/events.ts";
-import { useFocusState, getTextColor } from "./shared.ts";
+import { getTextColor, useFocusState } from "./shared.ts";
 
 export interface ToggleProps {
   checked: boolean;

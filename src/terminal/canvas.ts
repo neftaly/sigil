@@ -8,8 +8,8 @@ import {
   focusAndDispatch,
 } from "../core/index.ts";
 
-import { createRoot, type Root } from "../react/render.ts";
-import { createTerminalInput, type TerminalInput } from "./input.ts";
+import { type Root, createRoot } from "../react/render.ts";
+import { type TerminalInput, createTerminalInput } from "./input.ts";
 import { toAnsi } from "./ansi.ts";
 
 export interface TerminalCanvasOptions {

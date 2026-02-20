@@ -14,6 +14,7 @@ import { createReconciler } from "./reconciler.ts";
 export interface Root {
   render(element: ReactNode): void;
   unmount(): void;
+  resize(width: number, height: number): void;
   flushLayout(): void;
   getGrid(): Cell[][];
   toString(): string;
@@ -22,7 +23,10 @@ export interface Root {
   height: number;
 }
 
-export function createRoot(width: number, height: number): Root {
+export function createRoot(
+  initialWidth: number,
+  initialHeight: number,
+): Root {
   const database = createDatabase();
   const reconciler = createReconciler(database);
   const container = reconciler.createContainer(
@@ -39,15 +43,17 @@ export function createRoot(width: number, height: number): Root {
   );
 
   let currentGrid: Cell[][] | null = null;
+  let _width = initialWidth;
+  let _height = initialHeight;
 
   function flushLayout() {
-    computeLayout(database, width, height);
+    computeLayout(database, _width, _height);
     currentGrid = null;
   }
 
   function getGrid(): Cell[][] {
     if (!currentGrid) {
-      currentGrid = rasterize(database, width, height);
+      currentGrid = rasterize(database, _width, _height);
     }
     return currentGrid;
   }
@@ -64,6 +70,12 @@ export function createRoot(width: number, height: number): Root {
       reconciler.flushSyncWork();
     },
 
+    resize(width: number, height: number) {
+      _width = width;
+      _height = height;
+      flushLayout();
+    },
+
     flushLayout,
     getGrid,
 
@@ -72,7 +84,11 @@ export function createRoot(width: number, height: number): Root {
     },
 
     database,
-    width,
-    height,
+    get width() {
+      return _width;
+    },
+    get height() {
+      return _height;
+    },
   };
 }

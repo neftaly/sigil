@@ -7,6 +7,7 @@ import {
   createDatabase,
   removeNode,
 } from "./database.ts";
+import { applyYogaStyles } from "./yoga-styles.ts";
 import { rasterize, rasterizeOne } from "./rasterize.ts";
 
 describe("rasterize", () => {
@@ -390,5 +391,141 @@ describe("rasterizeOne", () => {
     expect(grid).not.toBeNull();
     expect(grid!.length).toBe(4);
     expect(grid![0].length).toBe(7);
+  });
+});
+
+describe("scroll support", () => {
+  it("scrollY offsets child content", () => {
+    const database = createDatabase();
+
+    const root = addNode(database, {
+      id: "root",
+      type: "box",
+      props: {
+        border: true,
+        overflow: "hidden" as const,
+        scrollY: 1,
+      },
+      parentId: null,
+    });
+    applyYogaStyles(root, root.props);
+    root.yogaNode.setWidth(10);
+    root.yogaNode.setHeight(4);
+    root.yogaNode.setBorder(database.yoga.EDGE_ALL, 1);
+
+    // Add two lines of text as children
+    const t1 = addNode(database, {
+      id: "t1",
+      type: "text",
+      props: { content: "Line1" },
+      parentId: "root",
+    });
+    t1.yogaNode.setHeight(1);
+
+    const t2 = addNode(database, {
+      id: "t2",
+      type: "text",
+      props: { content: "Line2" },
+      parentId: "root",
+    });
+    t2.yogaNode.setHeight(1);
+
+    const t3 = addNode(database, {
+      id: "t3",
+      type: "text",
+      props: { content: "Line3" },
+      parentId: "root",
+    });
+    t3.yogaNode.setHeight(1);
+
+    computeLayout(database, 10, 4);
+    const grid = rasterize(database, 10, 4);
+
+    // With scrollY=1 and 2 visible rows inside the border,
+    // Line1 is scrolled up out of view, Line2 and Line3 are visible
+    const result = gridToString(grid);
+    expect(result).toBe(
+      ["┌────────┐", "│Line2   │", "│Line3   │", "└────────┘"].join("\n"),
+    );
+  });
+
+  it("overflow hidden clips children", () => {
+    const database = createDatabase();
+
+    const root = addNode(database, {
+      id: "root",
+      type: "box",
+      props: {
+        border: true,
+        overflow: "hidden" as const,
+      },
+      parentId: null,
+    });
+    applyYogaStyles(root, root.props);
+    root.yogaNode.setWidth(10);
+    root.yogaNode.setHeight(3);
+    root.yogaNode.setBorder(database.yoga.EDGE_ALL, 1);
+
+    // Child text that is too long -- should be clipped at the border
+    const text = addNode(database, {
+      id: "text",
+      type: "text",
+      props: { content: "Hello World!!" },
+      parentId: "root",
+    });
+    text.yogaNode.setHeight(1);
+
+    computeLayout(database, 10, 3);
+    const grid = rasterize(database, 10, 3);
+
+    // Content area is 8 wide (10 - 2 borders), text is clipped
+    expect(gridToString(grid)).toBe(
+      ["┌────────┐", "│Hello Wo│", "└────────┘"].join("\n"),
+    );
+  });
+
+  it("scroll indicators appear when overflow is scroll", () => {
+    const database = createDatabase();
+
+    const root = addNode(database, {
+      id: "root",
+      type: "box",
+      props: {
+        border: true,
+        overflow: "scroll" as const,
+        scrollY: 1,
+      },
+      parentId: null,
+    });
+    applyYogaStyles(root, root.props);
+    root.yogaNode.setWidth(10);
+    root.yogaNode.setHeight(4);
+    root.yogaNode.setBorder(database.yoga.EDGE_ALL, 1);
+
+    // Create 4 lines so there's content above (scrolled past) and below (not visible)
+    for (let i = 1; i <= 4; i++) {
+      const t = addNode(database, {
+        id: `t${i}`,
+        type: "text",
+        props: { content: `Line${i}` },
+        parentId: "root",
+      });
+      t.yogaNode.setHeight(1);
+    }
+
+    computeLayout(database, 10, 4);
+    const grid = rasterize(database, 10, 4);
+
+    const result = gridToString(grid);
+    // With scrollY=1, visible content area shows Line2 and Line3
+    // Up arrow at top-right of content area, down arrow at bottom-right
+    expect(result).toBe(
+      [
+        "┌────────┐",
+        "│Line2  \u25B2│",
+        "│Line3  \u25BC│",
+        "└────────┘",
+      ].join("\n"),
+    );
   });
 });

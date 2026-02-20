@@ -137,4 +137,13 @@ export function applyYogaStyles(node: LayoutNode, props: NodeProps) {
       yogaNode.setPosition(yoga.EDGE_BOTTOM, layoutProps.bottom);
     }
   }
+
+  if (
+    layoutProps.overflow === "hidden" ||
+    layoutProps.overflow === "scroll"
+  ) {
+    yogaNode.setOverflow(yoga.OVERFLOW_HIDDEN);
+  } else if (layoutProps.overflow === "visible") {
+    yogaNode.setOverflow(yoga.OVERFLOW_VISIBLE);
+  }
 }

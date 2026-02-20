@@ -11,3 +11,15 @@ export { useDrag } from "./useDrag.ts";
 export type { DragState, UseDragOptions } from "./useDrag.ts";
 export { useResize } from "./useResize.ts";
 export type { ResizeState, UseResizeOptions } from "./useResize.ts";
+export { FocusTrap } from "./focus-trap.tsx";
+export type { FocusTrapProps } from "./focus-trap.tsx";
+export { ThemeProvider, useTheme, defaultTheme } from "./theme.tsx";
+export type { Theme, ThemeProviderProps } from "./theme.tsx";
+export {
+  useSelection,
+  useRange,
+  useTextInput,
+  useTextCursor,
+  useKeymap,
+  useFilter,
+} from "./hooks-widgets.ts";

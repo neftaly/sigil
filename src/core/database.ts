@@ -1,6 +1,6 @@
 import yoga, { type Node as YogaNode } from "yoga-layout";
 
-import type { NodeProps } from "./types.ts";
+import type { BoxNodeProps, LayoutProps, NodeProps } from "./types.ts";
 
 export type { YogaNode };
 
@@ -181,4 +181,75 @@ export function computeLayout(
   extractBounds(database.rootId, 0, 0);
 
   notifyListeners(database);
+}
+
+/**
+ * Compute the scroll offset needed on the nearest scrollable ancestor
+ * to make the given node fully visible.
+ * Returns null if no scrollable ancestor exists or the node is not found.
+ */
+export function scrollIntoView(
+  database: Database,
+  nodeId: string,
+): { scrollX: number; scrollY: number } | null {
+  const node = database.nodes.get(nodeId);
+  if (!node?.bounds) {
+    return null;
+  }
+
+  // Walk up the tree to find the nearest scrollable ancestor
+  let current = node.parentId ? database.nodes.get(node.parentId) : undefined;
+  while (current) {
+    const lp = current.props as Partial<LayoutProps>;
+    const overflow = lp.overflow;
+    if (
+      (overflow === "scroll" || overflow === "hidden") &&
+      current.bounds
+    ) {
+      // Found the scrollable ancestor
+      const boxProps = current.props as Partial<BoxNodeProps>;
+      const borderInset = boxProps.border ? 1 : 0;
+      const contentX = current.bounds.x + borderInset;
+      const contentY = current.bounds.y + borderInset;
+      const contentW = Math.max(0, current.bounds.width - borderInset * 2);
+      const contentH = Math.max(0, current.bounds.height - borderInset * 2);
+
+      const currentScrollX = lp.scrollX ?? 0;
+      const currentScrollY = lp.scrollY ?? 0;
+
+      // Node position relative to ancestor's content area
+      const relX = node.bounds.x - contentX;
+      const relY = node.bounds.y - contentY;
+
+      let newScrollX = currentScrollX;
+      let newScrollY = currentScrollY;
+
+      // Adjust scrollX so node is within [0, contentW)
+      // The visible range is [scrollX, scrollX + contentW)
+      // Node occupies [relX, relX + node.bounds.width)
+      if (relX < currentScrollX) {
+        newScrollX = relX;
+      } else if (relX + node.bounds.width > currentScrollX + contentW) {
+        newScrollX = relX + node.bounds.width - contentW;
+      }
+
+      // Adjust scrollY
+      if (relY < currentScrollY) {
+        newScrollY = relY;
+      } else if (relY + node.bounds.height > currentScrollY + contentH) {
+        newScrollY = relY + node.bounds.height - contentH;
+      }
+
+      // Clamp to >= 0
+      newScrollX = Math.max(0, newScrollX);
+      newScrollY = Math.max(0, newScrollY);
+
+      return { scrollX: newScrollX, scrollY: newScrollY };
+    }
+    current = current.parentId
+      ? database.nodes.get(current.parentId)
+      : undefined;
+  }
+
+  return null;
 }

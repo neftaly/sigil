@@ -164,6 +164,25 @@ describe("React reconciler", () => {
     expect(root.database.nodes.size).toBe(0);
   });
 
+  it("resize updates grid dimensions", () => {
+    const root = createRoot(40, 10);
+    root.render(<Box width={40} height={10} />);
+
+    let grid = root.getGrid();
+    expect(grid.length).toBe(10);
+    expect(grid[0].length).toBe(40);
+
+    root.resize(80, 20);
+
+    grid = root.getGrid();
+    expect(grid.length).toBe(20);
+    expect(grid[0].length).toBe(80);
+
+    // Exposed width/height should also update
+    expect(root.width).toBe(80);
+    expect(root.height).toBe(20);
+  });
+
   it("text wrapping works via JSX", () => {
     const root = createRoot(10, 4);
     root.render(

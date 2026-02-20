@@ -259,12 +259,14 @@ export function focusAndDispatch(
 /**
  * Dispatch a pointer event. Handles capture -> target -> bubble.
  * If pointer capture is active, routes all events to the captured node.
+ * Returns true if any handler was called.
+ * A handler returning true stops further bubbling.
  */
 export function dispatchPointerEvent(
   database: Database,
   state: EventState,
   event: PointerEvent,
-) {
+): boolean {
   // Pointer capture overrides hit test
   let target: LayoutNode | null = null;
   if (state.capturedNodeId) {
@@ -280,7 +282,7 @@ export function dispatchPointerEvent(
   }
 
   if (!target) {
-    return;
+    return false;
   }
 
   // Attach target bounds so handlers can compute relative positions
@@ -290,12 +292,16 @@ export function dispatchPointerEvent(
 
   // Build path from root to target for capture/bubble
   const path = buildPathToNode(database, target);
+  let handled = false;
 
   // Capture phase (root -> target, fire *Capture handlers)
   const captureHandler = getCaptureHandlerName(dispatched.type);
   if (captureHandler) {
     for (const node of path) {
-      fireHandler(node, captureHandler, dispatched);
+      if (fireHandler(node, captureHandler, dispatched) === true) {
+        return true;
+      }
+      if (node.props[captureHandler]) handled = true;
     }
   }
 
@@ -303,49 +309,65 @@ export function dispatchPointerEvent(
   const bubbleHandler = getBubbleHandlerName(dispatched.type);
   if (bubbleHandler) {
     for (let i = path.length - 1; i >= 0; i--) {
-      fireHandler(path[i], bubbleHandler, dispatched);
+      if (fireHandler(path[i], bubbleHandler, dispatched) === true) {
+        return true;
+      }
+      if (path[i].props[bubbleHandler]) handled = true;
     }
   }
+
+  return handled;
 }
 
 /**
  * Dispatch a key event to the focused node. Capture -> target -> bubble.
+ * Returns true if any handler was called.
+ * A handler returning true stops further bubbling.
  */
 export function dispatchKeyEvent(
   database: Database,
   state: EventState,
   event: KeyEvent,
-) {
+): boolean {
   // Tab handling
   if (event.type === "keydown" && event.key === "Tab") {
     focusRelative(database, state, event.shiftKey ? -1 : 1);
-    return;
+    return true;
   }
 
   if (!state.focusedId) {
-    return;
+    return false;
   }
 
   const target = database.nodes.get(state.focusedId);
   if (!target) {
-    return;
+    return false;
   }
 
   const path = buildPathToNode(database, target);
+  let handled = false;
 
   // Capture phase
   const captureHandler: keyof EventHandlerProps =
     event.type === "keydown" ? "onKeyDownCapture" : "onKeyUpCapture";
   for (const node of path) {
-    fireHandler(node, captureHandler, event);
+    if (fireHandler(node, captureHandler, event) === true) {
+      return true;
+    }
+    if (node.props[captureHandler]) handled = true;
   }
 
   // Bubble phase
   const bubbleHandler: keyof EventHandlerProps =
     event.type === "keydown" ? "onKeyDown" : "onKeyUp";
   for (let i = path.length - 1; i >= 0; i--) {
-    fireHandler(path[i], bubbleHandler, event);
+    if (fireHandler(path[i], bubbleHandler, event) === true) {
+      return true;
+    }
+    if (path[i].props[bubbleHandler]) handled = true;
   }
+
+  return handled;
 }
 
 // --- Helpers ---
@@ -401,11 +423,11 @@ function fireHandler(
   node: LayoutNode,
   handlerName: keyof EventHandlerProps,
   event: PointerEvent | KeyEvent | FocusEvent | TextUpdateEvent,
-) {
+): boolean | void {
   const handler = node.props[handlerName] as
-    | ((event: PointerEvent | KeyEvent | FocusEvent | TextUpdateEvent) => void)
+    | ((event: PointerEvent | KeyEvent | FocusEvent | TextUpdateEvent) => boolean | void)
     | undefined;
-  handler?.(event);
+  return handler?.(event);
 }
 
 const CAPTURE_HANDLER_MAP = {
@@ -439,32 +461,43 @@ function getBubbleHandlerName(type: string): keyof EventHandlerProps | null {
 /**
  * Dispatch a text update event to the focused node. Capture -> target -> bubble.
  * Used by EditContext to deliver text input changes.
+ * Returns true if any handler was called.
+ * A handler returning true stops further bubbling.
  */
 export function dispatchTextUpdateEvent(
   database: Database,
   state: EventState,
   event: TextUpdateEvent,
-) {
+): boolean {
   if (!state.focusedId) {
-    return;
+    return false;
   }
 
   const target = database.nodes.get(state.focusedId);
   if (!target) {
-    return;
+    return false;
   }
 
   const path = buildPathToNode(database, target);
+  let handled = false;
 
   // Capture phase
   for (const node of path) {
-    fireHandler(node, "onTextUpdateCapture", event);
+    if (fireHandler(node, "onTextUpdateCapture", event) === true) {
+      return true;
+    }
+    if (node.props.onTextUpdateCapture) handled = true;
   }
 
   // Bubble phase
   for (let i = path.length - 1; i >= 0; i--) {
-    fireHandler(path[i], "onTextUpdate", event);
+    if (fireHandler(path[i], "onTextUpdate", event) === true) {
+      return true;
+    }
+    if (path[i].props.onTextUpdate) handled = true;
   }
+
+  return handled;
 }
 
 /**

@@ -19,10 +19,12 @@ export {
   updateNode,
   computeLayout,
   subscribe,
+  scrollIntoView,
 } from "./database.ts";
 export { type BorderStyle, writeBorder } from "./borders.ts";
 export { type WrapMode, measureText, wrapText } from "./measure.ts";
-export { rasterize, rasterizeOne } from "./rasterize.ts";
+export { type Patch, compose } from "./compositor.ts";
+export { rasterize, rasterizeOne, rasterizeToPatches } from "./rasterize.ts";
 export {
   type PointerEvent,
   type KeyEvent,
@@ -70,3 +72,22 @@ export {
   applyOverlays,
   applyOverlaysToNodeGrid,
 } from "./overlays.ts";
+export {
+  type KeyBinding,
+  type Keymap,
+  type KeymapOverrides,
+  matchAction,
+  listBindings,
+} from "./keymap.ts";
+export {
+  type SelectionState,
+  type SelectionAction,
+  selectionReducer,
+  type RangeState,
+  type RangeConfig,
+  type RangeAction,
+  rangeReducer,
+  type TextInputState,
+  type TextInputAction,
+  textInputReducer,
+} from "./reducers.ts";

@@ -7,24 +7,24 @@ import type {
 } from "./events.ts";
 
 export interface EventHandlerProps {
-  onPointerDown?: (event: PointerEvent) => void;
-  onPointerUp?: (event: PointerEvent) => void;
-  onPointerMove?: (event: PointerEvent) => void;
-  onPointerEnter?: (event: PointerEvent) => void;
-  onPointerLeave?: (event: PointerEvent) => void;
-  onPointerDownCapture?: (event: PointerEvent) => void;
-  onPointerUpCapture?: (event: PointerEvent) => void;
-  onPointerMoveCapture?: (event: PointerEvent) => void;
-  onPointerCancel?: (event: PointerEvent) => void;
-  onPointerCancelCapture?: (event: PointerEvent) => void;
-  onKeyDown?: (event: KeyEvent) => void;
-  onKeyUp?: (event: KeyEvent) => void;
-  onKeyDownCapture?: (event: KeyEvent) => void;
-  onKeyUpCapture?: (event: KeyEvent) => void;
-  onTextUpdate?: (event: TextUpdateEvent) => void;
-  onTextUpdateCapture?: (event: TextUpdateEvent) => void;
-  onFocus?: (event: FocusEvent) => void;
-  onBlur?: (event: FocusEvent) => void;
+  onPointerDown?: (event: PointerEvent) => boolean | void;
+  onPointerUp?: (event: PointerEvent) => boolean | void;
+  onPointerMove?: (event: PointerEvent) => boolean | void;
+  onPointerEnter?: (event: PointerEvent) => boolean | void;
+  onPointerLeave?: (event: PointerEvent) => boolean | void;
+  onPointerDownCapture?: (event: PointerEvent) => boolean | void;
+  onPointerUpCapture?: (event: PointerEvent) => boolean | void;
+  onPointerMoveCapture?: (event: PointerEvent) => boolean | void;
+  onPointerCancel?: (event: PointerEvent) => boolean | void;
+  onPointerCancelCapture?: (event: PointerEvent) => boolean | void;
+  onKeyDown?: (event: KeyEvent) => boolean | void;
+  onKeyUp?: (event: KeyEvent) => boolean | void;
+  onKeyDownCapture?: (event: KeyEvent) => boolean | void;
+  onKeyUpCapture?: (event: KeyEvent) => boolean | void;
+  onTextUpdate?: (event: TextUpdateEvent) => boolean | void;
+  onTextUpdateCapture?: (event: TextUpdateEvent) => boolean | void;
+  onFocus?: (event: FocusEvent) => boolean | void;
+  onBlur?: (event: FocusEvent) => boolean | void;
   focusable?: boolean;
   tabIndex?: number;
   cursor?: string;
@@ -66,6 +66,12 @@ export interface LayoutProps {
   left?: number;
   right?: number;
   bottom?: number;
+  /** Horizontal scroll offset (default 0). */
+  scrollX?: number;
+  /** Vertical scroll offset (default 0). */
+  scrollY?: number;
+  /** Clipping behavior: "visible" = no clip (default), "hidden" = clip to bounds, "scroll" = clip + show scroll indicators. */
+  overflow?: "visible" | "hidden" | "scroll";
 }
 
 export interface StyleProps {

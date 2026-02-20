@@ -389,6 +389,145 @@ describe("focus", () => {
   });
 });
 
+describe("stopPropagation", () => {
+  it("key event: handler returning true stops bubbling to parent", () => {
+    const { database, root, left } = setupTree();
+    const state = createEventState();
+
+    left.props.focusable = true;
+    setFocus(database, state, "left");
+
+    const order: string[] = [];
+    left.props.onKeyDown = () => {
+      order.push("left-keydown");
+      return true; // stop propagation
+    };
+    root.props.onKeyDown = () => {
+      order.push("root-keydown");
+    };
+
+    const event: KeyEvent = {
+      type: "keydown",
+      key: "a",
+      code: "KeyA",
+      ctrlKey: false,
+      shiftKey: false,
+      altKey: false,
+      metaKey: false,
+    };
+    const result = dispatchKeyEvent(database, state, event);
+
+    expect(order).toEqual(["left-keydown"]);
+    expect(result).toBe(true);
+  });
+
+  it("pointer event: handler returning true stops bubbling to parent", () => {
+    const { database, root, left } = setupTree();
+    const state = createEventState();
+
+    const order: string[] = [];
+    left.props.onPointerDown = () => {
+      order.push("left-pointerdown");
+      return true; // stop propagation
+    };
+    root.props.onPointerDown = () => {
+      order.push("root-pointerdown");
+    };
+
+    const result = dispatchPointerEvent(database, state, {
+      type: "pointerdown",
+      col: 5,
+      row: 5,
+      button: 0,
+      shiftKey: false,
+    });
+
+    expect(order).toEqual(["left-pointerdown"]);
+    expect(result).toBe(true);
+  });
+
+  it("handler returning void does not stop propagation", () => {
+    const { database, root, left } = setupTree();
+    const state = createEventState();
+
+    left.props.focusable = true;
+    setFocus(database, state, "left");
+
+    const order: string[] = [];
+    left.props.onKeyDown = () => {
+      order.push("left-keydown");
+      // no return / returns void
+    };
+    root.props.onKeyDown = () => {
+      order.push("root-keydown");
+    };
+
+    const event: KeyEvent = {
+      type: "keydown",
+      key: "a",
+      code: "KeyA",
+      ctrlKey: false,
+      shiftKey: false,
+      altKey: false,
+      metaKey: false,
+    };
+    dispatchKeyEvent(database, state, event);
+
+    expect(order).toEqual(["left-keydown", "root-keydown"]);
+  });
+
+  it("capture handler returning true stops before bubble phase", () => {
+    const { database, root, left } = setupTree();
+    const state = createEventState();
+
+    left.props.focusable = true;
+    setFocus(database, state, "left");
+
+    const order: string[] = [];
+    root.props.onKeyDownCapture = () => {
+      order.push("root-capture");
+      return true; // stop in capture phase
+    };
+    left.props.onKeyDown = () => {
+      order.push("left-keydown");
+    };
+    root.props.onKeyDown = () => {
+      order.push("root-keydown");
+    };
+
+    const event: KeyEvent = {
+      type: "keydown",
+      key: "a",
+      code: "KeyA",
+      ctrlKey: false,
+      shiftKey: false,
+      altKey: false,
+      metaKey: false,
+    };
+    const result = dispatchKeyEvent(database, state, event);
+
+    expect(order).toEqual(["root-capture"]);
+    expect(result).toBe(true);
+  });
+
+  it("returns false when no handlers exist", () => {
+    const { database } = setupTree();
+    const state = createEventState();
+
+    const result = dispatchKeyEvent(database, state, {
+      type: "keydown",
+      key: "a",
+      code: "KeyA",
+      ctrlKey: false,
+      shiftKey: false,
+      altKey: false,
+      metaKey: false,
+    });
+
+    expect(result).toBe(false);
+  });
+});
+
 describe("isNavigationKey", () => {
   it("returns true for arrow keys", () => {
     expect(isNavigationKey("ArrowLeft")).toBe(true);

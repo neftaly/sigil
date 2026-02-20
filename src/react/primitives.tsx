@@ -10,10 +10,16 @@ import type {
 export interface BoxProps extends LayoutProps, EventHandlerProps, StyleProps {
   children?: ReactNode;
   borderStyle?: BorderStyle;
+  /** ARIA role for the node (read by the ARIA manager). */
+  role?: string;
+  /** When true, dims content, blocks input, and sets aria-disabled. */
+  disabled?: boolean;
+  /** Error message shown below the widget. */
+  error?: string;
 }
 
 export interface TextProps extends EventHandlerProps, StyleProps {
-  children?: string;
+  children?: ReactNode;
   wrap?: boolean;
 }
 
@@ -22,5 +28,5 @@ export function Box({ children, ...props }: BoxProps): ReactNode {
 }
 
 export function Text({ children, ...props }: TextProps): ReactNode {
-  return createElement("text", { ...props, content: children ?? "" });
+  return createElement("text", props, children);
 }

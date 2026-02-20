@@ -146,4 +146,10 @@ export function applyYogaStyles(node: LayoutNode, props: NodeProps) {
   } else if (layoutProps.overflow === "visible") {
     yogaNode.setOverflow(yoga.OVERFLOW_VISIBLE);
   }
+
+  if (layoutProps.display === "none") {
+    yogaNode.setDisplay(yoga.DISPLAY_NONE);
+  } else {
+    yogaNode.setDisplay(yoga.DISPLAY_FLEX);
+  }
 }

@@ -529,3 +529,150 @@ describe("scroll support", () => {
     );
   });
 });
+
+describe("display none", () => {
+  it("skips rendering nodes with display none", () => {
+    const database = createDatabase();
+
+    const root = addNode(database, {
+      id: "root",
+      type: "box",
+      props: {},
+      parentId: null,
+    });
+    root.yogaNode.setWidth(10);
+    root.yogaNode.setHeight(2);
+
+    const visible = addNode(database, {
+      id: "visible",
+      type: "text",
+      props: { content: "Hello" },
+      parentId: "root",
+    });
+    visible.yogaNode.setHeight(1);
+
+    const hiddenBox = addNode(database, {
+      id: "hiddenBox",
+      type: "box",
+      props: { display: "none" as const },
+      parentId: "root",
+    });
+    applyYogaStyles(hiddenBox, hiddenBox.props);
+    hiddenBox.yogaNode.setWidth(10);
+    hiddenBox.yogaNode.setHeight(1);
+
+    const hiddenText = addNode(database, {
+      id: "hiddenText",
+      type: "text",
+      props: { content: "Hidden" },
+      parentId: "hiddenBox",
+    });
+    hiddenText.yogaNode.setHeight(1);
+
+    computeLayout(database, 10, 2);
+    const grid = rasterize(database, 10, 2);
+
+    const result = gridToString(grid);
+    // "Hidden" text should not appear
+    expect(result).not.toContain("Hidden");
+    // "Hello" text should still appear
+    expect(result).toContain("Hello");
+  });
+
+  it("skips children of display none nodes", () => {
+    const database = createDatabase();
+
+    const root = addNode(database, {
+      id: "root",
+      type: "box",
+      props: {},
+      parentId: null,
+    });
+    root.yogaNode.setWidth(10);
+    root.yogaNode.setHeight(3);
+
+    const hiddenBox = addNode(database, {
+      id: "hiddenBox",
+      type: "box",
+      props: { display: "none" as const },
+      parentId: "root",
+    });
+    applyYogaStyles(hiddenBox, hiddenBox.props);
+    hiddenBox.yogaNode.setWidth(10);
+    hiddenBox.yogaNode.setHeight(1);
+
+    const childText = addNode(database, {
+      id: "childText",
+      type: "text",
+      props: { content: "ChildOfHidden" },
+      parentId: "hiddenBox",
+    });
+    childText.yogaNode.setHeight(1);
+
+    computeLayout(database, 10, 3);
+    const grid = rasterize(database, 10, 3);
+
+    expect(gridToString(grid)).not.toContain("ChildOfHidden");
+  });
+});
+
+describe("disabled", () => {
+  it("applies dim styling to disabled box and its children", () => {
+    const database = createDatabase();
+
+    const root = addNode(database, {
+      id: "root",
+      type: "box",
+      props: { disabled: true },
+      parentId: null,
+    });
+    root.yogaNode.setWidth(10);
+    root.yogaNode.setHeight(1);
+
+    const text = addNode(database, {
+      id: "text",
+      type: "text",
+      props: { content: "Hello" },
+      parentId: "root",
+    });
+    text.yogaNode.setHeight(1);
+
+    computeLayout(database, 10, 1);
+    const grid = rasterize(database, 10, 1);
+
+    // The text cells should have dim styling applied (from the disabled parent)
+    const textCell = grid[0][0];
+    expect(textCell.char).toBe("H");
+    expect(textCell.style.fg).toBe("#888888");
+    expect(textCell.style.italic).toBe(true);
+  });
+
+  it("does not dim non-disabled nodes", () => {
+    const database = createDatabase();
+
+    const root = addNode(database, {
+      id: "root",
+      type: "box",
+      props: {},
+      parentId: null,
+    });
+    root.yogaNode.setWidth(10);
+    root.yogaNode.setHeight(1);
+
+    const text = addNode(database, {
+      id: "text",
+      type: "text",
+      props: { content: "Hello" },
+      parentId: "root",
+    });
+    text.yogaNode.setHeight(1);
+
+    computeLayout(database, 10, 1);
+    const grid = rasterize(database, 10, 1);
+
+    const textCell = grid[0][0];
+    expect(textCell.char).toBe("H");
+    expect(textCell.style.fg).toBeUndefined();
+    expect(textCell.style.italic).toBeUndefined();
+  });
+});

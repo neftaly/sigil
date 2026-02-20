@@ -5,7 +5,45 @@ import type { Patch } from "./compositor.ts";
 import type { Bounds, Database, LayoutNode } from "./database.ts";
 import { writeBorder } from "./borders.ts";
 import { wrapText } from "./measure.ts";
-import type { BoxNodeProps, LayoutProps, NodeProps, TextNodeProps } from "./types.ts";
+import type { BoxNodeProps, LayoutProps, NodeProps, StyledRun, TextNodeProps } from "./types.ts";
+
+/** Dim foreground color applied to disabled nodes. */
+const DISABLED_FG = "#888888";
+
+/** Check if a node has display: "none". */
+function isDisplayNone(props: NodeProps): boolean {
+  const lp = props as Partial<LayoutProps>;
+  return lp.display === "none";
+}
+
+/** Check if a node is disabled. */
+function isDisabled(props: NodeProps): boolean {
+  const bp = props as Partial<BoxNodeProps>;
+  return bp.disabled === true;
+}
+
+/** Apply dim styling to all cells within the given bounds on the grid. */
+function applyDimStyling(
+  grid: Cell[][],
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  const gh = grid.length;
+  const gw = gridWidth(grid);
+  for (let row = y; row < y + height; row++) {
+    for (let col = x; col < x + width; col++) {
+      if (row >= 0 && row < gh && col >= 0 && col < gw) {
+        const cell = grid[row][col];
+        grid[row][col] = {
+          ...cell,
+          style: { ...cell.style, fg: DISABLED_FG, italic: true },
+        };
+      }
+    }
+  }
+}
 
 /** Compute the content area of a box (bounds minus border). */
 function contentArea(bounds: Bounds, props: NodeProps): Bounds {
@@ -114,6 +152,89 @@ function writeString(
   }
 }
 
+/**
+ * Write a sequence of styled runs on a single row, advancing the column.
+ * Returns the column after the last character written.
+ */
+function writeRunsOnRow(
+  grid: Cell[][],
+  row: number,
+  startCol: number,
+  runs: StyledRun[],
+  clipBounds: Bounds,
+): number {
+  let col = startCol;
+  for (const run of runs) {
+    for (const char of run.text) {
+      const charWidth = stringWidth(char);
+      if (charWidth !== 0) {
+        writeChar(grid, row, col, char, run.style, clipBounds);
+        writeContinuationCells(grid, row, col, charWidth, run.style, clipBounds);
+        col += charWidth;
+      }
+    }
+  }
+  return col;
+}
+
+/**
+ * Build a character-level style map from runs, then wrap and render.
+ * Each character in the concatenated text is mapped to its run's style.
+ */
+function writeWrappedRuns(
+  grid: Cell[][],
+  x: number,
+  y: number,
+  runs: StyledRun[],
+  maxWidth: number,
+  clipBounds: Bounds,
+) {
+  // Build a per-character style array indexed by position in the full text.
+  const fullText = runs.map((r) => r.text).join("");
+  const charStyles: CellStyle[] = [];
+  for (const run of runs) {
+    for (let i = 0; i < run.text.length; i++) {
+      charStyles.push(run.style);
+    }
+  }
+
+  // Wrap the full text, then render each line using the per-character styles.
+  const lines = wrapText(fullText, maxWidth);
+
+  // Walk through the original text and the wrapped lines in parallel.
+  // wrapText preserves characters but may drop whitespace at line breaks.
+  let srcIndex = 0;
+
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+    const line = lines[lineIndex];
+    let col = x;
+
+    // Iterate through each character of the wrapped line
+    for (const char of line) {
+      // Skip whitespace characters in the source that were stripped
+      // at the line boundary by wrapText
+      while (srcIndex < fullText.length && fullText[srcIndex] !== char) {
+        srcIndex++;
+      }
+      const style = charStyles[srcIndex] ?? {};
+      const charWidth = stringWidth(char);
+      if (charWidth !== 0) {
+        writeChar(grid, y + lineIndex, col, char, style, clipBounds);
+        writeContinuationCells(
+          grid,
+          y + lineIndex,
+          col,
+          charWidth,
+          style,
+          clipBounds,
+        );
+        col += charWidth;
+      }
+      srcIndex++;
+    }
+  }
+}
+
 function buildCellStyle(props: NodeProps): CellStyle {
   return {
     ...(props.color && { fg: props.color }),
@@ -177,7 +298,6 @@ function renderNodeContent(
 
   if (node.type === "text") {
     const textProps = props as TextNodeProps;
-    const text = textProps.content ?? "";
     const wrapMode = textProps.wrap ? "wrap" : "nowrap";
     // Text clips to its own bounds intersected with ancestor clip
     let textClip: Bounds = { x, y, width: bounds.width, height: bounds.height };
@@ -185,20 +305,31 @@ function renderNodeContent(
       textClip = intersectBounds(textClip, ancestorClipBounds);
     }
 
-    if (wrapMode === "wrap") {
-      const lines = wrapText(text, bounds.width);
-      for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-        writeString(
-          grid,
-          y + lineIndex,
-          x,
-          lines[lineIndex],
-          style,
-          textClip,
-        );
+    if (textProps.runs && textProps.runs.length > 0) {
+      // Render styled runs (from nested Text components)
+      if (wrapMode === "wrap") {
+        writeWrappedRuns(grid, x, y, textProps.runs, bounds.width, textClip);
+      } else {
+        writeRunsOnRow(grid, y, x, textProps.runs, textClip);
       }
     } else {
-      writeString(grid, y, x, text, style, textClip);
+      // Single content string (legacy path)
+      const text = textProps.content ?? "";
+      if (wrapMode === "wrap") {
+        const lines = wrapText(text, bounds.width);
+        for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+          writeString(
+            grid,
+            y + lineIndex,
+            x,
+            lines[lineIndex],
+            style,
+            textClip,
+          );
+        }
+      } else {
+        writeString(grid, y, x, text, style, textClip);
+      }
     }
   }
 }
@@ -327,6 +458,11 @@ function rasterizeNode(
   scrollOffsetY = 0,
   clipBounds: Bounds | null = null,
 ) {
+  // Skip hidden nodes entirely
+  if (isDisplayNone(node.props)) {
+    return;
+  }
+
   renderNodeContent(grid, node, scrollOffsetX, scrollOffsetY, clipBounds);
 
   const { bounds } = node;
@@ -385,6 +521,17 @@ function rasterizeNode(
       clipBounds,
     );
   }
+
+  // Apply dim styling for disabled nodes (after all content is rendered)
+  if (isDisabled(node.props) && bounds) {
+    applyDimStyling(
+      grid,
+      bounds.x + scrollOffsetX,
+      bounds.y + scrollOffsetY,
+      bounds.width,
+      bounds.height,
+    );
+  }
 }
 
 /**
@@ -439,6 +586,11 @@ function collectPatches(
   scrollOffsetY = 0,
   clipRect: Bounds | null = null,
 ) {
+  // Skip hidden nodes entirely
+  if (isDisplayNone(node.props)) {
+    return;
+  }
+
   const { bounds } = node;
   if (!bounds) {
     return;
@@ -448,10 +600,19 @@ function collectPatches(
   const localGrid = createGrid(bounds.width, bounds.height);
   renderNodeContent(localGrid, node, -bounds.x, -bounds.y);
 
+  // Apply dim styling for disabled nodes
+  if (isDisabled(node.props)) {
+    applyDimStyling(localGrid, 0, 0, bounds.width, bounds.height);
+  }
+
+  // Use explicit z prop if set, otherwise fall back to tree depth
+  const lp = node.props as Partial<LayoutProps>;
+  const zOrder = lp.z ?? depth;
+
   const patch: Patch = {
     origin: { x: bounds.x + scrollOffsetX, y: bounds.y + scrollOffsetY },
     cells: localGrid,
-    z: depth,
+    z: zOrder,
   };
 
   // Clip to the effective clip rect (set by scrollable/overflow ancestors)

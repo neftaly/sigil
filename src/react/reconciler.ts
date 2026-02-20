@@ -2,10 +2,12 @@ import ReactReconciler from "react-reconciler";
 import { DefaultEventPriority } from "react-reconciler/constants.js";
 
 import {
+  type CellStyle,
   type Database,
   type LayoutNode,
   type NodeProps,
   type NodeType,
+  type StyledRun,
   type TextNodeProps,
   type WrapMode,
   addNode,
@@ -17,6 +19,108 @@ import {
 
 export interface ReconcilerOptions {
   onCommit?: () => void;
+}
+
+/**
+ * Tracks child nodes that have been inlined as styled runs into a text parent.
+ * Maps child node id -> parent node id.
+ */
+type InlinedTextMap = Map<string, string>;
+
+/**
+ * Tracks the ordering of inlined children within a text parent.
+ * Maps parent node id -> ordered list of child node ids.
+ */
+type InlinedChildrenMap = Map<string, string[]>;
+
+/** Build a CellStyle from TextNodeProps style properties. */
+function buildRunStyle(props: TextNodeProps): CellStyle {
+  return {
+    ...(props.color && { fg: props.color }),
+    ...(props.backgroundColor && { bg: props.backgroundColor }),
+    ...(props.bold && { bold: true }),
+    ...(props.italic && { italic: true }),
+    ...(props.underline && { underline: true }),
+  };
+}
+
+/**
+ * Collect the styled runs from a text node.
+ * If the node has its own runs (from inlined children), return those
+ * with the parent style merged in. Otherwise return a single run
+ * from its content prop.
+ */
+function collectRunsFromChild(
+  childNode: LayoutNode,
+  inheritedStyle: CellStyle,
+): StyledRun[] {
+  const childProps = childNode.props as TextNodeProps;
+  const childOwnStyle = buildRunStyle(childProps);
+  const mergedStyle: CellStyle = { ...inheritedStyle, ...childOwnStyle };
+
+  if (childProps.runs && childProps.runs.length > 0) {
+    // Child already has runs (it was itself a text parent with inlined children).
+    // Merge the inherited style underneath each run's style.
+    return childProps.runs.map((run) => ({
+      text: run.text,
+      style: { ...mergedStyle, ...run.style },
+    }));
+  }
+
+  // Simple case: child has a content string
+  return [{ text: childProps.content ?? "", style: mergedStyle }];
+}
+
+/** Rebuild the runs array and measurement for a text parent from its inlined children. */
+function rebuildTextRuns(
+  database: Database,
+  parent: LayoutNode,
+  inlinedChildren: InlinedChildrenMap,
+) {
+  const parentProps = parent.props as TextNodeProps;
+  const childIds = inlinedChildren.get(parent.id) ?? [];
+
+  if (childIds.length === 0) {
+    // No inlined children — clear runs, measure from content only
+    const newProps: TextNodeProps = { ...parentProps };
+    delete newProps.runs;
+    parent.props = newProps;
+    setTextMeasureFunc(parent, newProps);
+    return;
+  }
+
+  // Build the runs array: start with the parent's own content (if any),
+  // then append each inlined child's content with its style.
+  const runs: StyledRun[] = [];
+  const parentStyle = buildRunStyle(parentProps);
+  if (parentProps.content) {
+    runs.push({ text: parentProps.content, style: parentStyle });
+  }
+
+  for (const childId of childIds) {
+    const childNode = database.nodes.get(childId);
+    if (childNode) {
+      const childRuns = collectRunsFromChild(childNode, parentStyle);
+      runs.push(...childRuns);
+    }
+  }
+
+  const newProps: TextNodeProps = { ...parentProps, runs };
+  parent.props = newProps;
+
+  // Measure the total concatenated text of all runs
+  const totalText = runs.map((r) => r.text).join("");
+  const wrapMode: WrapMode = parentProps.wrap ? "wrap" : "nowrap";
+
+  parent.yogaNode.setMeasureFunc((maxWidth, widthMode) => {
+    const width = widthMode === 0 ? Infinity : maxWidth;
+    const measured = measureText(totalText, wrapMode, width);
+    return { width: measured.width, height: measured.height };
+  });
+
+  if (parent.yogaNode.getChildCount() === 0) {
+    parent.yogaNode.markDirty();
+  }
 }
 
 function detachChild(database: Database, child: LayoutNode) {
@@ -95,6 +199,103 @@ function setTextMeasureFunc(node: LayoutNode, props: TextNodeProps) {
   }
 }
 
+/** Detach an inlined text child from its text parent. */
+function detachInlinedChild(
+  database: Database,
+  child: LayoutNode,
+  inlinedTextMap: InlinedTextMap,
+  inlinedChildren: InlinedChildrenMap,
+) {
+  const parentId = inlinedTextMap.get(child.id);
+  if (!parentId) return;
+
+  inlinedTextMap.delete(child.id);
+
+  const siblings = inlinedChildren.get(parentId);
+  if (siblings) {
+    const idx = siblings.indexOf(child.id);
+    if (idx !== -1) siblings.splice(idx, 1);
+    if (siblings.length === 0) inlinedChildren.delete(parentId);
+  }
+
+  const parent = database.nodes.get(parentId);
+  if (parent) {
+    rebuildTextRuns(database, parent, inlinedChildren);
+  }
+}
+
+/** Add an inlined text child to a text parent (at end). */
+function appendInlinedChild(
+  database: Database,
+  parent: LayoutNode,
+  child: LayoutNode,
+  inlinedTextMap: InlinedTextMap,
+  inlinedChildren: InlinedChildrenMap,
+) {
+  // Detach from previous inline parent if any
+  detachInlinedChild(database, child, inlinedTextMap, inlinedChildren);
+
+  inlinedTextMap.set(child.id, parent.id);
+
+  let siblings = inlinedChildren.get(parent.id);
+  if (!siblings) {
+    siblings = [];
+    inlinedChildren.set(parent.id, siblings);
+  }
+  siblings.push(child.id);
+
+  // Set parentId for cleanup tracking (but don't add to yoga tree)
+  child.parentId = parent.id;
+
+  rebuildTextRuns(database, parent, inlinedChildren);
+}
+
+/** Insert an inlined text child before another inlined child. */
+function insertInlinedChildBefore(
+  database: Database,
+  parent: LayoutNode,
+  child: LayoutNode,
+  beforeChild: LayoutNode,
+  inlinedTextMap: InlinedTextMap,
+  inlinedChildren: InlinedChildrenMap,
+) {
+  detachInlinedChild(database, child, inlinedTextMap, inlinedChildren);
+
+  inlinedTextMap.set(child.id, parent.id);
+
+  let siblings = inlinedChildren.get(parent.id);
+  if (!siblings) {
+    siblings = [];
+    inlinedChildren.set(parent.id, siblings);
+  }
+
+  const beforeIdx = siblings.indexOf(beforeChild.id);
+  if (beforeIdx === -1) {
+    siblings.push(child.id);
+  } else {
+    siblings.splice(beforeIdx, 0, child.id);
+  }
+
+  child.parentId = parent.id;
+
+  rebuildTextRuns(database, parent, inlinedChildren);
+}
+
+/** Remove an inlined text child and clean up its database node. */
+function removeInlinedChild(
+  database: Database,
+  child: LayoutNode,
+  inlinedTextMap: InlinedTextMap,
+  inlinedChildren: InlinedChildrenMap,
+) {
+  detachInlinedChild(database, child, inlinedTextMap, inlinedChildren);
+
+  // Clean up the child's yoga node and database entry
+  child.yogaNode.unsetMeasureFunc();
+  child.yogaNode.free();
+  database.nodes.delete(child.id);
+}
+
 export function createReconciler(
   database: Database,
   options?: ReconcilerOptions,
@@ -102,6 +303,47 @@ export function createReconciler(
   let nextNodeId = 0;
   function generateNodeId(): string {
     return `node_${++nextNodeId}`;
+  }
+
+  // Track text nodes inlined as styled runs into text parents
+  const inlinedTextMap: InlinedTextMap = new Map();
+  const inlinedChildren: InlinedChildrenMap = new Map();
+
+  /** Check if a child should be inlined as a styled run into a text parent. */
+  function isTextInText(parent: LayoutNode, child: LayoutNode): boolean {
+    return parent.type === "text" && child.type === "text";
+  }
+
+  /**
+   * Recursively clean up all inlined text children for a node and
+   * all of its real (non-inlined) descendants. This must be called
+   * before a node is removed from the tree.
+   */
+  function cleanupInlinedDescendants(node: LayoutNode) {
+    // First, recurse into real children
+    for (const childId of node.childIds) {
+      const childNode = database.nodes.get(childId);
+      if (childNode) {
+        cleanupInlinedDescendants(childNode);
+      }
+    }
+
+    // Then clean up this node's own inlined children
+    const inlined = inlinedChildren.get(node.id);
+    if (!inlined) return;
+
+    for (const childId of [...inlined]) {
+      const childNode = database.nodes.get(childId);
+      if (childNode) {
+        // Recursively clean up nested inlined children
+        cleanupInlinedDescendants(childNode);
+        inlinedTextMap.delete(childId);
+        childNode.yogaNode.unsetMeasureFunc();
+        childNode.yogaNode.free();
+        database.nodes.delete(childId);
+      }
+    }
+    inlinedChildren.delete(node.id);
   }
 
   const reconciler = ReactReconciler({
@@ -140,11 +382,31 @@ export function createReconciler(
     },
 
     appendInitialChild(parent: LayoutNode, child: LayoutNode) {
-      appendChildToParent(database, parent, child);
+      if (isTextInText(parent, child)) {
+        appendInlinedChild(
+          database,
+          parent,
+          child,
+          inlinedTextMap,
+          inlinedChildren,
+        );
+      } else {
+        appendChildToParent(database, parent, child);
+      }
     },
 
     appendChild(parent: LayoutNode, child: LayoutNode) {
-      appendChildToParent(database, parent, child);
+      if (isTextInText(parent, child)) {
+        appendInlinedChild(
+          database,
+          parent,
+          child,
+          inlinedTextMap,
+          inlinedChildren,
+        );
+      } else {
+        appendChildToParent(database, parent, child);
+      }
     },
 
     appendChildToContainer(_container: Database, child: LayoutNode) {
@@ -153,10 +415,18 @@ export function createReconciler(
     },
 
     removeChild(parent: LayoutNode, child: LayoutNode) {
-      removeChildFromParent(database, parent, child);
+      // First, clean up any inlined children this node may own
+      cleanupInlinedDescendants(child);
+
+      if (inlinedTextMap.has(child.id)) {
+        removeInlinedChild(database, child, inlinedTextMap, inlinedChildren);
+      } else {
+        removeChildFromParent(database, parent, child);
+      }
     },
 
     removeChildFromContainer(_container: Database, child: LayoutNode) {
+      cleanupInlinedDescendants(child);
       removeNode(database, child.id);
     },
 
@@ -165,7 +435,18 @@ export function createReconciler(
       child: LayoutNode,
       beforeChild: LayoutNode,
     ) {
-      insertChildBefore(database, parent, child, beforeChild);
+      if (isTextInText(parent, child)) {
+        insertInlinedChildBefore(
+          database,
+          parent,
+          child,
+          beforeChild,
+          inlinedTextMap,
+          inlinedChildren,
+        );
+      } else {
+        insertChildBefore(database, parent, child, beforeChild);
+      }
     },
 
     commitUpdate(
@@ -177,15 +458,40 @@ export function createReconciler(
       const typedProps = newProps as NodeProps;
       updateNode(database, instance.id, typedProps);
       applyYogaStyles(instance, typedProps);
+
       if (instance.type === "text") {
-        setTextMeasureFunc(instance, typedProps as TextNodeProps);
+        // If this node is inlined into a parent, rebuild the parent's runs
+        const parentId = inlinedTextMap.get(instance.id);
+        if (parentId) {
+          const parent = database.nodes.get(parentId);
+          if (parent) {
+            rebuildTextRuns(database, parent, inlinedChildren);
+          }
+        } else {
+          // Check if this is a text parent with inlined children
+          if (inlinedChildren.has(instance.id)) {
+            rebuildTextRuns(database, instance, inlinedChildren);
+          } else {
+            setTextMeasureFunc(instance, typedProps as TextNodeProps);
+          }
+        }
       }
     },
 
     commitTextUpdate(instance: LayoutNode, _oldText: string, newText: string) {
       const props: TextNodeProps = { content: newText };
       updateNode(database, instance.id, props);
-      setTextMeasureFunc(instance, props);
+
+      // If this text instance is inlined into a parent, rebuild parent runs
+      const parentId = inlinedTextMap.get(instance.id);
+      if (parentId) {
+        const parent = database.nodes.get(parentId);
+        if (parent) {
+          rebuildTextRuns(database, parent, inlinedChildren);
+        }
+      } else {
+        setTextMeasureFunc(instance, props);
+      }
     },
 
     resetTextContent() {

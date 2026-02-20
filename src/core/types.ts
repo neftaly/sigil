@@ -1,4 +1,5 @@
 import type { BorderStyle } from "./borders.ts";
+import type { CellStyle } from "./cell.ts";
 import type {
   FocusEvent,
   KeyEvent,
@@ -6,7 +7,21 @@ import type {
   TextUpdateEvent,
 } from "./events.ts";
 
-export interface EventHandlerProps {
+export interface AriaProps {
+  "aria-label"?: string;
+  "aria-labelledby"?: string;
+  "aria-describedby"?: string;
+  "aria-checked"?: boolean | "mixed";
+  "aria-selected"?: boolean;
+  "aria-expanded"?: boolean;
+  "aria-disabled"?: boolean;
+  "aria-valuemin"?: number;
+  "aria-valuemax"?: number;
+  "aria-valuenow"?: number;
+  "aria-valuetext"?: string;
+}
+
+export interface EventHandlerProps extends AriaProps {
   onPointerDown?: (event: PointerEvent) => boolean | void;
   onPointerUp?: (event: PointerEvent) => boolean | void;
   onPointerMove?: (event: PointerEvent) => boolean | void;
@@ -72,6 +87,10 @@ export interface LayoutProps {
   scrollY?: number;
   /** Clipping behavior: "visible" = no clip (default), "hidden" = clip to bounds, "scroll" = clip + show scroll indicators. */
   overflow?: "visible" | "hidden" | "scroll";
+  /** Z-index for layering. Higher renders on top. Used by compositor. */
+  z?: number;
+  /** Display mode: "flex" (default) or "none" to hide the node entirely. */
+  display?: "flex" | "none";
 }
 
 export interface StyleProps {
@@ -83,11 +102,24 @@ export interface StyleProps {
 }
 
 export interface BoxNodeProps
-  extends LayoutProps, EventHandlerProps, StyleProps {}
+  extends LayoutProps, EventHandlerProps, StyleProps {
+  /** ARIA role for the node (read by the ARIA manager). */
+  role?: string;
+  /** When true, dims content, blocks input, and sets aria-disabled. */
+  disabled?: boolean;
+  /** Error message shown below the widget. */
+  error?: string;
+}
+
+export interface StyledRun {
+  text: string;
+  style: CellStyle;
+}
 
 export interface TextNodeProps extends EventHandlerProps, StyleProps {
   content?: string;
   wrap?: boolean;
+  runs?: StyledRun[];
 }
 
 export type NodeProps = BoxNodeProps | TextNodeProps;

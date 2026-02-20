@@ -49,6 +49,8 @@ export {
   type NodeProps,
   type BoxNodeProps,
   type TextNodeProps,
+  type StyledRun,
+  type AriaProps,
   type EventHandlerProps,
   type LayoutProps,
   type StyleProps,

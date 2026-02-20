@@ -139,10 +139,15 @@ describe("React reconciler", () => {
     const str = root.toString();
     expect(str).toContain("Deep");
 
-    // Verify nested bounds propagate correctly
+    // Verify nested bounds propagate correctly.
+    // The text element node has bounds (the inlined text instance does not).
     const nodes = Array.from(root.database.nodes.values());
     const textNode = nodes.find(
-      (n) => n.type === "text" && (n.props as TextNodeProps).content === "Deep",
+      (n) =>
+        n.type === "text" &&
+        n.bounds !== null &&
+        ((n.props as TextNodeProps).runs?.some((r) => r.text === "Deep") ??
+          (n.props as TextNodeProps).content === "Deep"),
     );
     expect(textNode).toBeDefined();
     expect(textNode!.bounds).toBeDefined();
@@ -195,5 +200,83 @@ describe("React reconciler", () => {
     expect(str).toBe(
       ["┌────────┐", "│Hello   │", "│World   │", "└────────┘"].join("\n"),
     );
+  });
+
+  it("nested Text renders as styled runs on a single layout node", () => {
+    const root = createRoot(20, 3);
+    root.render(
+      <Box border width={20} height={3}>
+        <Text>{"Hello "}<Text bold>world</Text></Text>
+      </Box>,
+    );
+
+    const str = root.toString();
+    // The text "Hello world" should appear on a single line
+    expect(str).toContain("Hello");
+    expect(str).toContain("world");
+
+    // The outer text element should have runs, not separate child layout nodes.
+    // Find the text element that has bounds (it's in the layout tree).
+    const nodes = Array.from(root.database.nodes.values());
+    const textElements = nodes.filter(
+      (n) => n.type === "text" && n.bounds !== null,
+    );
+    // Only one text element should have layout bounds (the outer one).
+    // Inner text nodes are inlined — they should NOT have bounds.
+    expect(textElements).toHaveLength(1);
+
+    const outer = textElements[0];
+    const outerProps = outer.props as TextNodeProps;
+    expect(outerProps.runs).toBeDefined();
+    expect(outerProps.runs!.length).toBeGreaterThanOrEqual(2);
+
+    // Verify the bold run has the correct style
+    const boldRun = outerProps.runs!.find((r) => r.text === "world");
+    expect(boldRun).toBeDefined();
+    expect(boldRun!.style.bold).toBe(true);
+  });
+
+  it("nested Text with styled runs renders correctly in grid", () => {
+    const root = createRoot(20, 1);
+    root.render(
+      <Text>{"Hello "}<Text bold>world</Text></Text>,
+    );
+
+    // Check the grid cells for correct styling
+    const grid = root.getGrid();
+    // "Hello world" should be visible
+    const str = root.toString();
+    expect(str).toContain("Hello");
+    expect(str).toContain("world");
+
+    // The "w" in "world" should be bold
+    // "Hello " is 6 chars, so "world" starts at col 6
+    const wCell = grid[0][6];
+    expect(wCell.char).toBe("w");
+    expect(wCell.style.bold).toBe(true);
+
+    // The "H" in "Hello" should NOT be bold
+    const hCell = grid[0][0];
+    expect(hCell.char).toBe("H");
+    expect(hCell.style.bold).toBeFalsy();
+  });
+
+  it("nested Text removal cleans up inlined children", () => {
+    const root = createRoot(20, 3);
+
+    function App({ showBold }: { showBold: boolean }) {
+      return (
+        <Box border width={20} height={3}>
+          <Text>{"Hello "}{showBold && <Text bold>world</Text>}</Text>
+        </Box>
+      );
+    }
+
+    root.render(<App showBold />);
+    expect(root.toString()).toContain("world");
+
+    root.render(<App showBold={false} />);
+    expect(root.toString()).not.toContain("world");
+    expect(root.toString()).toContain("Hello");
   });
 });

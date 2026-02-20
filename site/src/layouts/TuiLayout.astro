@@ -1,0 +1,48 @@
+---
+import '../styles/tui.css';
+
+interface Props {
+  title: string;
+  section?: string;
+}
+
+const { title, section } = Astro.props;
+const nav = [
+  { href: '/sigil/', label: 'Home' },
+  { href: '/sigil/getting-started/', label: 'Getting Started' },
+  { href: '/sigil/widgets/', label: 'Widgets' },
+  { href: '/sigil/kit/', label: 'Kit' },
+  { href: '/sigil/patterns/', label: 'Patterns' },
+  { href: '/sigil/surfaces/', label: 'Surfaces' },
+  { href: '/sigil/demos/', label: 'Demos' },
+];
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{title} — Sigil</title>
+  <link rel="icon" type="image/svg+xml" href="/sigil/favicon.svg" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-title">@neftaly/sigil</div>
+    <nav class="site-nav">
+      {nav.map(({ href, label }) => (
+        <a href={href} class={section === label.toLowerCase() ? 'active' : ''}>
+          {label}
+        </a>
+      ))}
+    </nav>
+  </header>
+
+  <main>
+    <slot />
+  </main>
+
+  <footer class="site-footer">
+    @neftaly/sigil — React renderer for character-grid UIs
+  </footer>
+</body>
+</html>

@@ -1,0 +1,41 @@
+---
+import WidgetLayout from '../../layouts/WidgetLayout.astro';
+---
+<WidgetLayout title="TextField">
+  <h1>TextField</h1>
+  <p>Single-line text input with cursor.</p>
+
+  <h2>Preview</h2>
+  <pre class="ascii-mockup">┌────────────────────────────────┐  <span class="focused">╭────────────────────────────────╮</span>
+│John Smith                      │  <span class="focused">│</span>John Smith█                     <span class="focused">│</span>
+└────────────────────────────────┘  <span class="focused">╰────────────────────────────────╯</span>
+ unfocused                           focused (rounded, primary, cursor)
+
+┌────────────────────────────────┐  ┌────────────────────────────────┐
+│Enter your name...              │  │••••••••                        │
+└────────────────────────────────┘  └────────────────────────────────┘
+ placeholder (italic)                password echo mode</pre>
+
+  <h2>Accessible mode</h2>
+  <p><code>Name: John Smith</code></p>
+
+  <h2>Props</h2>
+  <table>
+    <thead><tr><th>Prop</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>value</td><td>string</td><td></td></tr>
+      <tr><td>onChange</td><td>function</td><td></td></tr>
+      <tr><td>placeholder</td><td>string?</td><td></td></tr>
+      <tr><td>width</td><td>number</td><td></td></tr>
+      <tr><td>echoMode</td><td>string?</td><td><code>"normal"</code> <code>"password"</code> <code>"none"</code></td></tr>
+      <tr><td>charLimit</td><td>number?</td><td></td></tr>
+      <tr><td>readOnly</td><td>boolean?</td><td></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Usage</h2>
+  <pre><code>&lt;TextField value={'{'}form.name{'}'} onChange={'{'}setName{'}'} error={'{'}errors.name{'}'} /&gt;</code></pre>
+
+  <h2>Interactive demo</h2>
+  <div class="demo-placeholder">Interactive demo coming soon</div>
+</WidgetLayout>

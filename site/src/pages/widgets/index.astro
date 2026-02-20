@@ -1,0 +1,69 @@
+---
+import WidgetLayout from '../../layouts/WidgetLayout.astro';
+---
+<WidgetLayout title="Widgets">
+  <h1>Widgets</h1>
+  <p>
+    Standard UI controls. Each widget takes <code>value</code> and
+    <code>onChange</code> props &mdash; no internal state.
+  </p>
+
+  <h2>Visual language</h2>
+  <p>Interactive widgets are visually distinct from display-only content:</p>
+  <pre class="ascii-mockup">Unfocused:          Focused:              Disabled:
+┌──────────────┐    <span class="focused">╭──────────────╮</span>      ┌──────────────┐
+│ content      │    <span class="focused">│ content      │</span>      │ content      │
+└──────────────┘    <span class="focused">╰──────────────╯</span>      └──────────────┘
+ default border      rounded border        dimmed text
+ default color       primary color         dimmed border</pre>
+
+  <ul>
+    <li><strong>Interactive</strong> widgets have borders. Focus changes border style (single &rarr; rounded) and color (default &rarr; primary). This gives two signals &mdash; shape and color &mdash; so it works in monochrome too.</li>
+    <li><strong>Display-only</strong> widgets (ProgressBar, Spinner, Divider) have no border and never receive focus.</li>
+    <li><strong>Pressed/active</strong> state inverts fg/bg within the widget's content area.</li>
+    <li>On DOM, pointer cursor changes to <code>pointer</code> over interactive widgets, and hover shows a subtle background highlight.</li>
+  </ul>
+
+  <h2>Text effects</h2>
+  <ul>
+    <li><strong>Bold</strong> &mdash; Panel titles, Button labels, active tab label, Table column headers.</li>
+    <li><em>Italic</em> &mdash; placeholder text, disabled labels.</li>
+    <li><strong style="opacity:0.5">Dim</strong> &mdash; disabled controls, secondary information (file sizes, percentages).</li>
+  </ul>
+
+  <h2>Entry</h2>
+  <ul>
+    <li><a href="/sigil/widgets/textfield/">TextField</a> &mdash; single-line text input with cursor</li>
+    <li><a href="/sigil/widgets/numberinput/">NumberInput</a> &mdash; numeric stepper with arrows</li>
+    <li><a href="/sigil/widgets/textarea/">TextArea</a> &mdash; multi-line text input with scroll</li>
+  </ul>
+
+  <h2>Selection</h2>
+  <ul>
+    <li><a href="/sigil/widgets/checkbox/">CheckBox</a> &mdash; inline toggle &rarr; <code>[x]</code> or <code>[ ]</code></li>
+    <li><a href="/sigil/widgets/toggle/">Toggle</a> &mdash; boolean switch, visual alternative to CheckBox</li>
+    <li><a href="/sigil/widgets/radiogroup/">RadioGroup</a> &mdash; pick one from a group</li>
+    <li><a href="/sigil/widgets/listbox/">ListBox</a> &mdash; scrollable selection list</li>
+    <li><a href="/sigil/widgets/checklist/">CheckList</a> &mdash; scrollable list with checkboxes</li>
+  </ul>
+
+  <h2>Action</h2>
+  <ul>
+    <li><a href="/sigil/widgets/button/">Button</a> &mdash; inline activation &rarr; bordered label</li>
+    <li><a href="/sigil/widgets/slider/">Slider</a> &mdash; draggable range bar</li>
+  </ul>
+
+  <h2>Display</h2>
+  <ul>
+    <li><a href="/sigil/widgets/progressbar/">ProgressBar</a> &mdash; fill container with flexbox children</li>
+    <li><a href="/sigil/widgets/spinner/">Spinner</a> &mdash; braille animation with label</li>
+    <li><a href="/sigil/widgets/divider/">Divider</a> &mdash; horizontal or vertical rule</li>
+  </ul>
+
+  <h2>Chrome</h2>
+  <ul>
+    <li><a href="/sigil/widgets/panel/">Panel</a> &mdash; bordered container with a title</li>
+    <li><a href="/sigil/widgets/tabbar/">TabBar</a> &mdash; tab strip</li>
+    <li><a href="/sigil/widgets/dialog/">Dialog</a> &mdash; modal overlay with focus trap</li>
+  </ul>
+</WidgetLayout>

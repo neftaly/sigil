@@ -1,0 +1,34 @@
+---
+import WidgetLayout from '../../layouts/WidgetLayout.astro';
+---
+<WidgetLayout title="Slider">
+  <h1>Slider</h1>
+  <p>Draggable range bar.</p>
+
+  <h2>Preview</h2>
+  <pre class="ascii-mockup">├████████████░░░░░░░░┤  64%     unfocused
+<span class="focused">╞████████████░░░░░░░░╡  64%</span>     focused (rounded ends, primary color)
+├░░░░░░░░░░░░░░░░░░░░┤   0%
+├████████████████████ ┤ 100%</pre>
+
+  <h2>Accessible mode</h2>
+  <p><code>Morale: 64%</code></p>
+
+  <h2>Props</h2>
+  <table>
+    <thead><tr><th>Prop</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>value</td><td>number</td><td></td></tr>
+      <tr><td>onChange</td><td>function</td><td></td></tr>
+      <tr><td>min</td><td>number?</td><td>default 0</td></tr>
+      <tr><td>max</td><td>number?</td><td>default 1</td></tr>
+      <tr><td>step</td><td>number?</td><td></td></tr>
+      <tr><td>width</td><td>number</td><td></td></tr>
+      <tr><td>showLabel</td><td>boolean?</td><td></td></tr>
+      <tr><td>marks</td><td>number[]?</td><td>tick marks at specific values</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Interactive demo</h2>
+  <div class="demo-placeholder">Interactive demo coming soon</div>
+</WidgetLayout>

@@ -1,0 +1,14 @@
+---
+import SurfaceLayout from '../../layouts/SurfaceLayout.astro';
+---
+<SurfaceLayout title="3D Surface">
+  <h1>3D Surface</h1>
+  <p>Debug visualization, not a production renderer. Renders the layout tree as stacked planes via React Three Fiber.</p>
+
+  <h2>ExplodedCanvas</h2>
+  <p>Standalone wrapper. Runs its own headless reconciler + layout.</p>
+  <pre><code>&lt;ExplodedCanvas width={'{'}80{'}'} height={'{'}24{'}'} fonts={'{'}fontSet{'}'}&gt;
+  &lt;Box border="single"&gt;&lt;Text&gt;Hello&lt;/Text&gt;&lt;/Box&gt;
+&lt;/ExplodedCanvas&gt;</code></pre>
+  <p><code>fonts?: FontSet</code> &mdash; <code>{'{'}regular, bold, italic, boldItalic{'}'}</code> as URLs to <code>.ttf</code> files.</p>
+</SurfaceLayout>

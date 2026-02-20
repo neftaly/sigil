@@ -1,0 +1,229 @@
+---
+import KitLayout from '../../layouts/KitLayout.astro';
+---
+<KitLayout title="Kit">
+  <h1>Kit</h1>
+  <p><strong>v2 &mdash; coming after v1 ships.</strong></p>
+  <p>
+    Multi-widget components that handle complex layout, multi-step state,
+    or external library integration.
+  </p>
+  <p>
+    If it can be built in under 30 lines from atoms, it belongs in
+    <a href="/sigil/patterns/">Patterns</a> (docs only). Otherwise it ships here.
+  </p>
+
+  <h2>Planned molecules</h2>
+
+  <h3 id="colorpicker">ColorPicker</h3>
+  <p>
+    HTML hex colors and CSS named colors. Two views via TabBar: a palette grid
+    of named color cells (spatial nav across cells, each cell's background is
+    the color) and a custom view with RGB sliders + hex text input.
+  </p>
+  <p>Composes: Panel, TabBar, Slider, TextField, Box.</p>
+  <p>Props: <code>value</code>, <code>onChange</code>, <code>palette</code> (predefined hex colors for the palette tab).</p>
+
+  <h4>Palette view</h4>
+  <pre class="ascii-mockup">┌ Color ──────────────────────────────────────────┐
+│                                                 │
+│  <span class="focused">┌ Palette ┐</span> Custom │                           │
+│  ├─────────┴────────────────────────────────┐   │
+│  │                                          │   │
+│  │  (grid of named color cells, each cell   │   │
+│  │   is a space with bg = that color)       │   │
+│  │                    ▸                     │   │
+│  │                                          │   │
+│  └──────────────────────────────────────────┘   │
+│                                                 │
+│  Selected: coral      #FF7F50   ████            │
+│                                 preview         │
+└─────────────────────────────────────────────────┘</pre>
+
+  <h4>Custom view</h4>
+  <pre class="ascii-mockup">┌ Color ──────────────────────────────────────────┐
+│                                                 │
+│  Palette │ <span class="focused">┌ Custom ┐</span>                           │
+│  ────────┴─┤────────────────────────────────┐   │
+│  │                                          │   │
+│  │  R ├████████████░░░░░░░░┤ 128            │   │
+│  │  G ├████░░░░░░░░░░░░░░░░┤  64            │   │
+│  │  B ├████████████████████┤ 255            │   │
+│  │                                          │   │
+│  │  ┌──────────────────────┐                │   │
+│  │  │#8040FF               │    ████        │   │
+│  │  └──────────────────────┘   preview      │   │
+│  └──────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────┘</pre>
+
+  <h3 id="datepicker">DatePicker</h3>
+  <p>
+    Three drill-down views (day &rarr; month &rarr; year), following
+    Android/iOS date picker patterns. Tapping the header label drills into the
+    next view. Optional time tab with NumberInput spinners for hour and minute.
+  </p>
+  <p>Composes: Panel, TabBar, ListBox, NumberInput, Button, Box.</p>
+  <p>Props: <code>value</code>, <code>onChange</code>, <code>min</code>, <code>max</code> (date range constraints), <code>showTime</code>.</p>
+
+  <h4>Day view</h4>
+  <pre class="ascii-mockup">┌─────────────────────────────────────┐
+│                                     │
+│       ◀  January 2026  ▶            │
+│            ↑ tap for months         │
+│                                     │
+│  Mo  Tu  We  Th  Fr  Sa  Su         │
+│               1   2   3   4         │
+│   5   6   7   8   9  10  11         │
+│  12  13  14  15  16  17  18         │
+│  19 <span class="focused">▸20</span>  21  22  23  24  25         │
+│  26  27  28  29  30  31             │
+│                                     │
+└─────────────────────────────────────┘</pre>
+
+  <h4>Month view</h4>
+  <pre class="ascii-mockup">┌─────────────────────────────────────┐
+│                                     │
+│            ◀  2026  ▶               │
+│             ↑ tap for years         │
+│                                     │
+│  <span class="focused">▸Jan</span>   Feb   Mar   Apr             │
+│   May   Jun   Jul   Aug             │
+│   Sep   Oct   Nov   Dec             │
+│                                     │
+└─────────────────────────────────────┘</pre>
+
+  <h4>Year view</h4>
+  <pre class="ascii-mockup">┌─────────────────────────────────────┐
+│                                     │
+│   2023                              │
+│   2024                              │
+│   2025                              │
+│ <span class="focused">▸ 2026</span>                              │
+│   2027                              │
+│   2028                              │
+│   2029                              │
+│                                     │
+└─────────────────────────────────────┘</pre>
+
+  <h4>With time</h4>
+  <pre class="ascii-mockup">┌─────────────────────────────────────┐
+│  Date │ <span class="focused">┌ Time ┐</span>                    │
+│  ─────┴─┤──────────────────────┐    │
+│  │  Hour:   <span class="focused">◀[ 14 ]▶</span>           │    │
+│  │  Minute: ◀[ 30 ]▶           │    │
+│  └─────────────────────────────┘    │
+└─────────────────────────────────────┘</pre>
+
+  <h3 id="table">Table</h3>
+  <p>
+    Thin rendering layer over TanStack Table. Column headers, sortable and
+    resizable columns, pagination. TanStack Table handles sorting, filtering,
+    and pagination logic.
+  </p>
+  <p>Composes: Box, Text, useResize, Button.</p>
+  <p>Props: TanStack Table instance, or plain <code>data</code> + <code>columns</code>. Optional <code>selectable</code> for row checkboxes.</p>
+
+  <h4>Sorted</h4>
+  <pre class="ascii-mockup">┌──────────────────┬───────┬─────┐
+│ Unit           ▼ │  Pts  │  W  │  ← ▼ = sorted descending
+├──────────────────┼───────┼─────┤
+│ Strike Team      │  200  │  2  │
+│ Siege Golem      │  150  │  8  │
+│ Shield Wall      │  100  │  1  │
+├──────────────────┼───────┼─────┤
+│ Total            │  450  │     │
+└──────────────────┴───────┴─────┘</pre>
+
+  <h4>Empty</h4>
+  <pre class="ascii-mockup">┌──────────────────┬───────┬─────┐
+│ Unit             │  Pts  │  W  │
+├──────────────────┼───────┼─────┤
+│                                │
+│         No data                │
+│                                │
+└──────────────────┴───────┴─────┘</pre>
+
+  <h4>Paginated</h4>
+  <pre class="ascii-mockup">│ ...                            │
+├──────────────────┼───────┼─────┤
+│              Page 2 of 5       │
+│           ◀  1  2  3  ▶        │
+└────────────────────────────────┘</pre>
+
+  <h3 id="commandpalette">CommandPalette</h3>
+  <p>
+    Fuzzy-find actions. Dialog + TextField + filtered ListBox. Displays matching
+    actions as the user types, with a "no matching actions" empty state.
+  </p>
+  <p>Composes: Dialog, TextField, ListBox, useFilter.</p>
+  <p>Props: <code>actions</code>, <code>onSelect</code>, <code>onClose</code>.</p>
+
+  <pre class="ascii-mockup"><span class="focused">┌─────────────────────────────────────┐</span>
+<span class="focused">│</span> > add un█                           <span class="focused">│</span>
+<span class="focused">│</span> ┌─────────────────────────────────┐ <span class="focused">│</span>
+<span class="focused">│</span> │ <span class="focused">▸ Add Unit</span>                      │ <span class="focused">│</span>
+<span class="focused">│</span> │   Add Unit to Reserve           │ <span class="focused">│</span>
+<span class="focused">│</span> │   Undo Last Action              │ <span class="focused">│</span>
+<span class="focused">│</span> └─────────────────────────────────┘ <span class="focused">│</span>
+<span class="focused">└─────────────────────────────────────┘</span></pre>
+
+  <p>No results:</p>
+  <pre class="ascii-mockup">┌─────────────────────────────────────┐
+│ > xyzzy█                            │
+│                                     │
+│   No matching actions               │
+│                                     │
+└─────────────────────────────────────┘</pre>
+
+  <h3 id="autocomplete">Autocomplete</h3>
+  <p>
+    TextField with suggestions dropdown. Popover positioned below the input.
+    Dropdown only appears after typing. Supports a "no matches" empty state.
+  </p>
+  <p>Composes: TextField, ListBox, useFilter, Popover.</p>
+  <p>Props: <code>value</code>, <code>onChange</code>, <code>options</code>, <code>onSelect</code>.</p>
+
+  <pre class="ascii-mockup">Typing:                             No results:
+<span class="focused">╭────────────────────────────────╮</span>  <span class="focused">╭────────────────────────────────╮</span>
+<span class="focused">│</span>Iron Leg█                       <span class="focused">│</span>  <span class="focused">│</span>xyzzy█                          <span class="focused">│</span>
+├────────────────────────────────┤  ├────────────────────────────────┤
+│ <span class="focused">▸ Iron Legion</span>                  │  │  No matches                    │
+│   Iron Guard                   │  └────────────────────────────────┘
+│   Iron Horde                   │
+└────────────────────────────────┘</pre>
+
+  <h3 id="toast">Toast</h3>
+  <p>
+    Auto-dismissing notification. High-z patch, no focus trap. Timer unmounts
+    it. Multiple toasts stack vertically. Not interactive (no focus).
+  </p>
+  <p>Composes: Box (high z), Text, timer.</p>
+  <p>Props: <code>message</code>, <code>duration</code>, <code>intent</code> (info/success/warning/error).</p>
+
+  <pre class="ascii-mockup">Single:              ┌─────────────────────────┐
+                     │  Unit added to roster   │
+                     └─────────────────────────┘
+
+Stacked:             ┌─────────────────────────┐
+                     │  Settings saved         │
+                     └─────────────────────────┘
+                     ┌─────────────────────────┐
+                     │  Unit added to roster   │
+                     └─────────────────────────┘</pre>
+
+  <h3 id="popover">Popover</h3>
+  <p>
+    Positioning primitive. High-z Box anchored to a trigger element's grid
+    bounds. Takes anchor NodeId + placement (above/below/left/right), computes
+    origin from layout bounds, renders children in a high-z Box. Used by
+    Autocomplete, Tooltip, and ContextMenu.
+  </p>
+  <p>Not a widget &mdash; a positioning utility.</p>
+
+  <pre class="ascii-mockup">  ┌──────────┐
+  │ Rename   │           ┌────────────────────────┐
+  │ Delete   │           │ Tip: press Tab to move │
+  │ Inspect  │           │ between fields.        │
+  └──────────┘           └────────────────────────┘
+   context menu               tooltip</pre>
+</KitLayout>

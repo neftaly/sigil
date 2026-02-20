@@ -1,0 +1,34 @@
+---
+import WidgetLayout from '../../layouts/WidgetLayout.astro';
+---
+<WidgetLayout title="NumberInput">
+  <h1>NumberInput</h1>
+  <p>Numeric stepper with arrows.</p>
+
+  <h2>Preview</h2>
+  <pre class="ascii-mockup">◀  12  ▶        <span class="focused">◀[ 12 ]▶</span>        ◀  0  ▶
+ unfocused        focused         at min (◀ dimmed)</pre>
+
+  <h2>Accessible mode</h2>
+  <p><code>Health: 12</code></p>
+
+  <h2>Props</h2>
+  <table>
+    <thead><tr><th>Prop</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>value</td><td>number</td><td></td></tr>
+      <tr><td>onChange</td><td>function</td><td></td></tr>
+      <tr><td>min</td><td>number?</td><td></td></tr>
+      <tr><td>max</td><td>number?</td><td></td></tr>
+      <tr><td>step</td><td>number?</td><td>default 1</td></tr>
+      <tr><td>precision</td><td>number?</td><td>decimal places</td></tr>
+      <tr><td>label</td><td>string?</td><td></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Usage</h2>
+  <pre><code>&lt;NumberInput value={'{'}health{'}'} onChange={'{'}setHealth{'}'} min={'{'}0{'}'} max={'{'}20{'}'} /&gt;</code></pre>
+
+  <h2>Interactive demo</h2>
+  <div class="demo-placeholder">Interactive demo coming soon</div>
+</WidgetLayout>

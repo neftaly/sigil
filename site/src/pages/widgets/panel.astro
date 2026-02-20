@@ -1,0 +1,35 @@
+---
+import WidgetLayout from '../../layouts/WidgetLayout.astro';
+---
+<WidgetLayout title="Panel">
+  <h1>Panel</h1>
+  <p>Bordered container with a title (bold).</p>
+
+  <h2>Preview</h2>
+  <pre class="ascii-mockup">┌ Unit Stats ────────────────────┐
+│ Name:  Warchief                │
+│ Wounds: ◀[ 6 ]▶                │
+│ [x] Leader                     │
+└────────────────────────────────┘</pre>
+
+  <h2>Props</h2>
+  <table>
+    <thead><tr><th>Prop</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>title</td><td>string?</td><td></td></tr>
+      <tr><td>children</td><td>ReactNode</td><td></td></tr>
+      <tr><td>width</td><td>number?</td><td></td></tr>
+      <tr><td>border</td><td>string?</td><td></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Usage</h2>
+  <pre><code>&lt;Panel title="Unit Stats"&gt;
+  &lt;Text&gt;Name: Warchief&lt;/Text&gt;
+  &lt;NumberInput value={'{'}wounds{'}'} onChange={'{'}setWounds{'}'} /&gt;
+  &lt;CheckBox checked={'{'}leader{'}'} onChange={'{'}setLeader{'}'} label="Leader" /&gt;
+&lt;/Panel&gt;</code></pre>
+
+  <h2>Interactive demo</h2>
+  <div class="demo-placeholder">Interactive demo coming soon</div>
+</WidgetLayout>

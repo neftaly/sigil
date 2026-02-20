@@ -1,0 +1,163 @@
+---
+import PatternLayout from '../../layouts/PatternLayout.astro';
+---
+<PatternLayout title="Patterns">
+  <h1>Patterns</h1>
+  <p>
+    Short examples showing how to combine atoms. Copy and adapt.
+  </p>
+
+  <h2 id="statusbar">StatusBar</h2>
+  <p>
+    <code>formatKeymap(keymap)</code> (from <code>@neftaly/sigil</code>) formats
+    bindings from <code>listBindings()</code>:
+  </p>
+  <pre><code>&lt;Text&gt;{'{'}formatKeymap(activeKeymap){'}'}&lt;/Text&gt;
+// &uarr;&darr; Move   Space Toggle   Enter Confirm   Esc Cancel</code></pre>
+  <pre class="ascii-mockup">↑↓ Move  Space Toggle  Enter Confirm  Tab Next  Esc Cancel</pre>
+
+  <h2 id="validation">Validation</h2>
+  <p>
+    All widgets are controlled (<code>value</code> + <code>onChange</code>), so
+    validation is the caller's concern. TypeScript types define the form shape;
+    validation rules are plain functions or objects.
+  </p>
+
+  <h3>Error states</h3>
+  <p>
+    Widgets accept an <code>error</code> prop (string or boolean). Renders a red
+    border and error text below.
+  </p>
+  <pre class="ascii-mockup">Valid:                           Error:
+┌────────────────────────────┐   ┌────────────────────────────┐
+│Aldric Stonehelm            │   │                            │
+└────────────────────────────┘   └────────────────────────────┘
+                                   Name is required
+
+◀[ 16 ]▶                        ◀[ 25 ]▶
+                                   Max 18</pre>
+
+  <h3>TypeScript-first</h3>
+  <p>Define form shape as a type, validation rules as a plain object:</p>
+  <pre><code>type CharacterForm = {'{'}
+  name: string;
+  race: 'human' | 'elf' | 'dwarf' | 'halfling';
+  stats: Record&lt;string, number&gt;;
+{'}'};
+
+const validate = (form: CharacterForm) =&gt; ({'{'}
+  name: form.name.length === 0 ? 'Name is required' : undefined,
+  stats: Object.fromEntries(
+    Object.entries(form.stats)
+      .filter(([, v]) =&gt; v &lt; 3 || v &gt; 18)
+      .map(([k]) =&gt; [k, 'Must be 3\u201318'])
+  ),
+{'}'});
+
+// Usage
+const errors = validate(form);
+&lt;TextField value={'{'}form.name{'}'} onChange={'{'}setName{'}'} error={'{'}errors.name{'}'} /&gt;</code></pre>
+
+  <h3>Zod integration</h3>
+  <p>
+    Optional. Integrates via React Hook Form's <code>zodResolver</code>, or
+    standalone. Useful for complex validation (cross-field, async). Not required
+    &mdash; plain TypeScript functions work for most cases.
+  </p>
+  <pre><code>// With React Hook Form + Zod
+const schema = z.object({'{'}
+  name: z.string().min(1, 'Name is required'),
+  stats: z.record(z.number().min(3).max(18)),
+{'}'});
+
+const {'{'} control, formState: {'{'} errors {'}'} {'}'} = useForm({'{'}
+  resolver: zodResolver(schema),
+{'}'});
+
+&lt;Controller control={'{'}control{'}'} name="name" render={'{'}({'{'} field, fieldState {'}'}) =&gt;
+  &lt;TextField {'{'}...field{'}'} error={'{'}fieldState.error?.message{'}'} /&gt;
+{'}'} /&gt;</code></pre>
+
+  <h2 id="recipes">Composition patterns</h2>
+  <p>
+    Each of these can be built in under 30 lines from existing atoms. They are
+    documented as recipes, not shipped as components.
+  </p>
+
+  <h3 id="alert">Alert</h3>
+  <p>
+    <code>&lt;Panel&gt;</code> + icon + optional <code>&lt;Button&gt;</code>.
+    Set border color by severity.
+  </p>
+  <pre class="ascii-mockup">┌ ℹ ───────────────────────────────────────────┐
+│  New version available.          [Update]    │
+└──────────────────────────────────────────────┘</pre>
+
+  <h3 id="skeleton">Skeleton</h3>
+  <p>
+    <code>&lt;Box&gt;</code> with animated background fill (CSS animation on
+    DOM, static fill on terminal).
+  </p>
+  <pre class="ascii-mockup">┌────────────────────────────┐
+│ ░░░░░░░░░░░░░░░░░░░░░░░░   │
+│ ░░░░░░░░░░░░░░░░           │
+└────────────────────────────┘</pre>
+
+  <h3 id="tooltip">Tooltip</h3>
+  <p>
+    <code>&lt;Popover&gt;</code> that shows on focus/hover with a delay.
+    Dismisses on blur/leave.
+  </p>
+  <pre class="ascii-mockup">              ┌───────────────────────┐
+  [▸ Delete]  │ Remove unit from      │
+              │ roster permanently.   │
+              └───────────────────────┘</pre>
+
+  <h3 id="contextmenu">ContextMenu</h3>
+  <p>
+    <code>&lt;Popover&gt;</code> + <code>&lt;ListBox&gt;</code> +
+    <code>&lt;FocusTrap&gt;</code>. Triggered by right-click or menu key.
+  </p>
+  <pre class="ascii-mockup">         ┌──────────┐
+         │ Rename   │
+         │ Delete   │
+         │ Inspect  │
+         └──────────┘</pre>
+
+  <h3 id="splitter">Splitter</h3>
+  <p>
+    Two <code>&lt;Box&gt;</code> children + <code>useDrag</code> on the divider
+    handle.
+  </p>
+  <pre class="ascii-mockup">┌──────────────────│──────────────────┐
+│  Left pane       │  Right pane      │
+└──────────────────│──────────────────┘</pre>
+
+  <h3 id="breadcrumb">Breadcrumb</h3>
+  <p>Row of <code>&lt;Button&gt;</code> with <code>" / "</code> separators.</p>
+  <pre class="ascii-mockup"> Home / Projects / Settings / Users</pre>
+
+  <h3 id="accordion">Accordion</h3>
+  <p>
+    <code>&lt;Panel&gt;</code> for open section + <code>&lt;Button&gt;</code>
+    headers + <code>selectionReducer</code>.
+  </p>
+  <pre class="ascii-mockup">┌ General ────────────────────────────┐
+│  Name: Shield Wall                  │
+│  Points: 100                        │
+└─────────────────────────────────────┘
+▸ Equipment
+▸ Abilities
+▸ Notes</pre>
+
+  <h3 id="treeview">TreeView</h3>
+  <p>
+    Flat <code>&lt;ListBox&gt;</code> with indent levels + expand/collapse
+    state.
+  </p>
+  <pre class="ascii-mockup">  ▾ src/
+    ▾ components/
+        App.tsx
+    ▸ hooks/
+    package.json</pre>
+</PatternLayout>

@@ -1,0 +1,51 @@
+---
+import TuiLayout from '../layouts/TuiLayout.astro';
+---
+<TuiLayout title="Home" section="home">
+  <h1>@neftaly/sigil</h1>
+  <p>React renderer for character-grid UIs. Renders to DOM, terminal, or Three.js.</p>
+
+  <h2>Hello world</h2>
+  <pre><code>import {'{'} Box, Text {'}'} from '@neftaly/sigil'
+import {'{'} CharuiCanvas {'}'} from '@neftaly/sigil/dom'
+
+&lt;CharuiCanvas width={'{'}40{'}'} height={'{'}10{'}'}&gt;
+  &lt;Box border="single" padding={'{'}1{'}'}&gt;
+    &lt;Text&gt;Hello world&lt;/Text&gt;
+  &lt;/Box&gt;
+&lt;/CharuiCanvas&gt;</code></pre>
+  <pre class="ascii-mockup">┌──────────────────────────────────────┐
+│                                      │
+│  Hello world                         │
+│                                      │
+└──────────────────────────────────────┘</pre>
+
+  <h2>Widgets</h2>
+  <p>16 components. Each takes <code>value</code> + <code>onChange</code>.</p>
+  <pre class="ascii-mockup"><span class="focused">╭────────────────────────────────╮</span>   [x] Shielded    ●━━ Dark mode
+<span class="focused">│</span>John Smith█                     <span class="focused">│</span>   ( ) Option A
+<span class="focused">╰────────────────────────────────╯</span>   (o) Option B    ├████████░░░░┤ 64%
+
+┌──────────┐  ┌──────────┐         Loading... ⠹
+│ Save     │  │ Cancel   │</pre>
+
+  <h2>Surfaces</h2>
+  <table>
+    <thead><tr><th>Import</th><th>Output</th></tr></thead>
+    <tbody>
+      <tr><td><code>@neftaly/sigil/dom</code></td><td>Canvas element + hidden ARIA elements</td></tr>
+      <tr><td><code>@neftaly/sigil/terminal</code></td><td>ANSI output, alternate screen buffer</td></tr>
+      <tr><td><code>@neftaly/sigil/threedee</code></td><td>3D grid (React Three Fiber)</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Navigation</h2>
+  <ul>
+    <li><a href="/sigil/getting-started/">Getting Started</a> &mdash; install, hello world, architecture</li>
+    <li><a href="/sigil/widgets/">Widgets</a> &mdash; all 16 atoms with props and previews</li>
+    <li><a href="/sigil/surfaces/">Surfaces</a> &mdash; DOM, Terminal, Three.js</li>
+    <li><a href="/sigil/kit/">Kit</a> &mdash; compound molecules (v2)</li>
+    <li><a href="/sigil/patterns/">Patterns</a> &mdash; composition recipes</li>
+    <li><a href="/sigil/demos/">Demos</a> &mdash; kitchen sink mockups</li>
+  </ul>
+</TuiLayout>

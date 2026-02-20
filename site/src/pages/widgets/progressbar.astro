@@ -1,0 +1,37 @@
+---
+import WidgetLayout from '../../layouts/WidgetLayout.astro';
+---
+<WidgetLayout title="ProgressBar">
+  <h1>ProgressBar</h1>
+  <p>Fill container with flexbox children. Fill paints background with inverted colors over the filled region.</p>
+
+  <h2>Usage</h2>
+  <pre><code>&lt;ProgressBar value={0.13} width={60}&gt;
+  &lt;Text&gt;Downloading update (436)&lt;/Text&gt;
+  &lt;Text&gt;13%  814kB/s  2m30s&lt;/Text&gt;
+&lt;/ProgressBar&gt;</code></pre>
+
+  <h2>Preview</h2>
+  <pre class="ascii-mockup">▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+Downloading update (436)                       13%  814kB/s  2m30s
+^^^^ inverted ^^^^                           ^^^^ normal ^^^^</pre>
+
+  <h2>Accessible mode</h2>
+  <p><code>Downloading update (436) -- 13%</code></p>
+
+  <h2>Props</h2>
+  <table>
+    <thead><tr><th>Prop</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>value</td><td>number</td><td>0 to 1</td></tr>
+      <tr><td>width</td><td>number</td><td></td></tr>
+      <tr><td>children</td><td>ReactNode?</td><td></td></tr>
+      <tr><td>filledStyle</td><td>CellStyle?</td><td></td></tr>
+      <tr><td>emptyStyle</td><td>CellStyle?</td><td></td></tr>
+      <tr><td>indeterminate</td><td>boolean?</td><td>animated, no value needed</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Interactive demo</h2>
+  <div class="demo-placeholder">Interactive demo coming soon</div>
+</WidgetLayout>

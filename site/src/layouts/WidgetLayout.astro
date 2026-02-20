@@ -1,0 +1,57 @@
+---
+import TuiLayout from './TuiLayout.astro';
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+
+const widgets = {
+  'Text Entry': [
+    { href: '/sigil/widgets/textfield/', label: 'TextField' },
+    { href: '/sigil/widgets/numberinput/', label: 'NumberInput' },
+    { href: '/sigil/widgets/textarea/', label: 'TextArea' },
+  ],
+  'Selection': [
+    { href: '/sigil/widgets/checkbox/', label: 'CheckBox' },
+    { href: '/sigil/widgets/toggle/', label: 'Toggle' },
+    { href: '/sigil/widgets/radiogroup/', label: 'RadioGroup' },
+    { href: '/sigil/widgets/listbox/', label: 'ListBox' },
+    { href: '/sigil/widgets/checklist/', label: 'CheckList' },
+  ],
+  'Action': [
+    { href: '/sigil/widgets/button/', label: 'Button' },
+    { href: '/sigil/widgets/slider/', label: 'Slider' },
+  ],
+  'Display': [
+    { href: '/sigil/widgets/progressbar/', label: 'ProgressBar' },
+    { href: '/sigil/widgets/spinner/', label: 'Spinner' },
+    { href: '/sigil/widgets/divider/', label: 'Divider' },
+  ],
+  'Chrome': [
+    { href: '/sigil/widgets/panel/', label: 'Panel' },
+    { href: '/sigil/widgets/tabbar/', label: 'TabBar' },
+    { href: '/sigil/widgets/dialog/', label: 'Dialog' },
+  ],
+};
+---
+<TuiLayout title={title} section="widgets">
+  <div class="page-grid">
+    <aside class="sidebar">
+      {Object.entries(widgets).map(([group, items]) => (
+        <>
+          <h4>{group}</h4>
+          {items.map(({ href, label }) => (
+            <a href={href} aria-current={Astro.url.pathname.startsWith(href) ? 'page' : undefined}>
+              {label}
+            </a>
+          ))}
+        </>
+      ))}
+    </aside>
+    <article>
+      <slot />
+    </article>
+  </div>
+</TuiLayout>

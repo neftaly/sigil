@@ -1,0 +1,47 @@
+---
+import WidgetLayout from '../../layouts/WidgetLayout.astro';
+---
+<WidgetLayout title="Dialog">
+  <h1>Dialog</h1>
+  <p>Modal overlay with focus trap.</p>
+
+  <h2>Preview</h2>
+  <pre class="ascii-mockup">┌─────────────────────────────┐
+│                             │
+│  ┌ Confirm ──────────────┐  │
+│  │                       │  │
+│  │  Shuffle the deck?    │  │
+│  │                       │  │
+│  │  ▸ Yes     No         │  │
+│  └───────────────────────┘  │
+│                             │
+└─────────────────────────────┘</pre>
+
+  <h2>Props</h2>
+  <table>
+    <thead><tr><th>Prop</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>title</td><td>string?</td><td></td></tr>
+      <tr><td>children</td><td>ReactNode</td><td></td></tr>
+      <tr><td>onClose</td><td>function?</td><td></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Usage</h2>
+  <pre><code>&lt;Dialog title="Confirm" onClose={'{'}handleClose{'}'}&gt;
+  &lt;Text&gt;Shuffle the deck?&lt;/Text&gt;
+  &lt;Button label="Yes" onPress={'{'}handleYes{'}'} /&gt;
+  &lt;Button label="No" onPress={'{'}handleNo{'}'} /&gt;
+&lt;/Dialog&gt;</code></pre>
+
+  <h2>Custom overlays with primitives</h2>
+  <p>Build custom overlays with the primitives directly:</p>
+  <pre><code>// Tooltip (high-z, no focus trap)
+&lt;Box z={'{'}100{'}'} position="absolute" left={'{'}x{'}'} top={'{'}y{'}'}&gt;...&lt;/Box&gt;
+
+// Inline focus trap (no overlay)
+&lt;FocusTrap&gt;&lt;WizardStep /&gt;&lt;/FocusTrap&gt;</code></pre>
+
+  <h2>Interactive demo</h2>
+  <div class="demo-placeholder">Interactive demo coming soon</div>
+</WidgetLayout>

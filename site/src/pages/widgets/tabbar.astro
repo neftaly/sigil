@@ -1,0 +1,31 @@
+---
+import WidgetLayout from '../../layouts/WidgetLayout.astro';
+---
+<WidgetLayout title="TabBar">
+  <h1>TabBar</h1>
+  <p>Tab strip. Content switching is the caller's concern.</p>
+
+  <h2>Preview</h2>
+  <pre class="ascii-mockup"><span class="focused">┌ Army ┐</span> Rules │ Score │
+├──────┴───────┴───────────────┐
+ active tab has primary color</pre>
+
+  <h2>Props</h2>
+  <table>
+    <thead><tr><th>Prop</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>value</td><td>string</td><td></td></tr>
+      <tr><td>onChange</td><td>function</td><td></td></tr>
+      <tr><td>tabs</td><td><code>{'{ value, label }[]'}</code></td><td>individual tabs can have <code>disabled: true</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Usage</h2>
+  <p>User handles content:</p>
+  <pre><code>&lt;TabBar value={'{'}tab{'}'} onChange={'{'}setTab{'}'} tabs={'{'}tabs{'}'} /&gt;
+{'{'}tab === "army" &amp;&amp; &lt;ArmyPanel /&gt;{'}'}
+{'{'}tab === "rules" &amp;&amp; &lt;RulesPanel /&gt;{'}'}</code></pre>
+
+  <h2>Interactive demo</h2>
+  <div class="demo-placeholder">Interactive demo coming soon</div>
+</WidgetLayout>

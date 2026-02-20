@@ -1,0 +1,30 @@
+---
+import WidgetLayout from '../../layouts/WidgetLayout.astro';
+---
+<WidgetLayout title="RadioGroup">
+  <h1>RadioGroup</h1>
+  <p>Pick one from a group.</p>
+
+  <h2>Preview</h2>
+  <pre class="ascii-mockup">( ) Attacker        <span class="focused">  ( ) Attacker</span>
+( ) Defender        <span class="focused">▸ (●) Defender</span>
+(o) Observer        <span class="focused">  ( ) Observer</span>
+ unfocused           focused</pre>
+
+  <h2>Accessible mode</h2>
+  <p><code>Role: Defender</code></p>
+
+  <h2>Props</h2>
+  <table>
+    <thead><tr><th>Prop</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>value</td><td>string</td><td></td></tr>
+      <tr><td>onChange</td><td>function</td><td></td></tr>
+      <tr><td>options</td><td><code>{"{ value, label }[]"}</code></td><td></td></tr>
+      <tr><td>disabled</td><td>boolean?</td><td></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Interactive demo</h2>
+  <div class="demo-placeholder">Interactive demo coming soon</div>
+</WidgetLayout>

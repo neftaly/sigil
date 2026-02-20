@@ -1,0 +1,23 @@
+---
+import SurfaceLayout from '../../layouts/SurfaceLayout.astro';
+---
+<SurfaceLayout title="Terminal Surface">
+  <h1>Terminal Surface</h1>
+  <p>ANSI surface. Output only &mdash; input is handled separately (stdin, WebSocket, etc.).</p>
+
+  <h2>TerminalCanvas</h2>
+  <p>Manages alternate screen, raw mode, mouse tracking, and cleanup on exit. Single instance per process.</p>
+
+  <h2>Known limitations</h2>
+  <ul>
+    <li><strong>Node.js only.</strong> Uses <code>process.stdin</code>/<code>process.stdout</code> and <code>tty.ReadStream</code>. Deno and Bun have different APIs.</li>
+    <li><strong>Single instance.</strong> One TerminalCanvas per process.</li>
+    <li><strong>No clipboard.</strong> Ctrl+C is SIGINT. OSC 52 clipboard has spotty terminal support. Copy/paste is a DOM-only feature.</li>
+    <li><strong>No hover.</strong> Mouse tracking provides clicks and drags, not hover. Hover states are DOM-only.</li>
+    <li><strong>No IME.</strong> Terminals in raw mode don't support Input Method Editor composition.</li>
+    <li><strong>Mouse scroll varies.</strong> Some terminals send scroll events, some don't. Scroll-heavy UIs work best on DOM.</li>
+    <li><strong>Terminal multiplexers</strong> (tmux, screen) may intercept mouse events or mangle key sequences.</li>
+    <li><strong>LTR only.</strong> RTL/bidirectional text is not supported in v1.</li>
+  </ul>
+
+</SurfaceLayout>

@@ -1,0 +1,54 @@
+---
+import SurfaceLayout from '../../layouts/SurfaceLayout.astro';
+---
+<SurfaceLayout title="DOM Surface">
+  <h1>DOM Surface</h1>
+  <p>Browser rendering surface.</p>
+
+  <p>Renders the grid to DOM. Handles keyboard, pointer, and IME input.</p>
+
+  <h2>ARIA Renderer</h2>
+  <p>Hidden native HTML elements are synced to grid positions. Screen readers see real form controls.</p>
+
+  <table>
+    <thead>
+      <tr><th>Semantic role</th><th>Hidden element</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>textbox</td><td><code>&lt;input type="text"&gt;</code></td></tr>
+      <tr><td>spinbutton</td><td><code>&lt;input type="number"&gt;</code></td></tr>
+      <tr><td>textarea</td><td><code>&lt;textarea&gt;</code></td></tr>
+      <tr><td>checkbox</td><td><code>&lt;input type="checkbox"&gt;</code></td></tr>
+      <tr><td>radiogroup</td><td><code>&lt;fieldset&gt;</code> + radios</td></tr>
+      <tr><td>listbox</td><td><code>&lt;select&gt;</code></td></tr>
+      <tr><td>listbox (multi)</td><td><code>&lt;select multiple&gt;</code></td></tr>
+      <tr><td>button</td><td><code>&lt;button&gt;</code></td></tr>
+      <tr><td>dialog</td><td><code>&lt;dialog&gt;</code></td></tr>
+      <tr><td>slider</td><td><code>&lt;input type="range"&gt;</code></td></tr>
+      <tr><td>progressbar</td><td><code>role="progressbar"</code></td></tr>
+      <tr><td>status</td><td><code>role="status"</code></td></tr>
+    </tbody>
+  </table>
+
+  <p>Unmapped roles fall through as <code>role="[value]"</code> on a generic <code>&lt;div&gt;</code>. The table above covers common cases; custom roles work via the standard ARIA attribute.</p>
+
+  <h2>Embeds</h2>
+  <p>Place native HTML or React content at grid coordinates. Terminal and 3D surfaces render fallback children instead.</p>
+
+  <h2>DOM-only features</h2>
+  <p>These features work on DOM but have no terminal equivalent:</p>
+  <ul>
+    <li><strong>Hover</strong> &mdash; pointer cursor change, subtle background highlight on interactive widgets</li>
+    <li><strong>Clipboard</strong> &mdash; native copy/paste via DOM selection sync</li>
+    <li><strong>IME</strong> &mdash; EditContext handles text composition (CJK, accent marks, etc.)</li>
+    <li><strong>Embed</strong> &mdash; mount native HTML/React content at grid bounds. Terminal renders fallback children instead.</li>
+    <li><strong>Right-click</strong> &mdash; contextmenu event for ContextMenu pattern. No terminal equivalent.</li>
+    <li><strong>CSS animation</strong> &mdash; cursor blink, Skeleton shimmer. Terminal gets native cursor blink; Skeleton is static.</li>
+  </ul>
+
+  <h2>CharuiCanvas</h2>
+  <p>Composes surface + input source + ARIA renderer. Multiple instances per page are fine.</p>
+  <pre><code>&lt;CharuiCanvas width={'{'}80{'}'} height={'{'}24{'}'}&gt;
+  &lt;Box border="single"&gt;&lt;Text&gt;Hello&lt;/Text&gt;&lt;/Box&gt;
+&lt;/CharuiCanvas&gt;</code></pre>
+</SurfaceLayout>

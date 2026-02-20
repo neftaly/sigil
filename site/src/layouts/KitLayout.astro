@@ -1,0 +1,32 @@
+---
+import TuiLayout from './TuiLayout.astro';
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+
+const molecules = [
+  { href: '#colorpicker', label: 'ColorPicker' },
+  { href: '#datepicker', label: 'DatePicker' },
+  { href: '#table', label: 'Table' },
+  { href: '#commandpalette', label: 'CommandPalette' },
+  { href: '#autocomplete', label: 'Autocomplete' },
+  { href: '#toast', label: 'Toast' },
+  { href: '#popover', label: 'Popover' },
+];
+---
+<TuiLayout title={title} section="kit">
+  <div class="page-grid">
+    <aside class="sidebar">
+      <h4>Molecules (v2)</h4>
+      {molecules.map(({ href, label }) => (
+        <a href={href}>{label}</a>
+      ))}
+    </aside>
+    <article>
+      <slot />
+    </article>
+  </div>
+</TuiLayout>

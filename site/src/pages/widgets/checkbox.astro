@@ -1,0 +1,29 @@
+---
+import WidgetLayout from '../../layouts/WidgetLayout.astro';
+---
+<WidgetLayout title="CheckBox">
+  <h1>CheckBox</h1>
+  <p>Inline toggle &mdash; <code>[x]</code> or <code>[ ]</code>.</p>
+
+  <h2>Preview</h2>
+  <pre class="ascii-mockup">[ ] Shielded     [x] Wounded     [~] Partial     <span class="focused">[▸] Shielded</span>     [-] Locked
+ unchecked        checked         indeterminate    focused           disabled</pre>
+
+  <h2>Accessible mode</h2>
+  <p><code>Wounded: yes</code></p>
+
+  <h2>Props</h2>
+  <table>
+    <thead><tr><th>Prop</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>checked</td><td>boolean</td><td></td></tr>
+      <tr><td>onChange</td><td>function</td><td></td></tr>
+      <tr><td>label</td><td>string?</td><td></td></tr>
+      <tr><td>disabled</td><td>boolean?</td><td></td></tr>
+      <tr><td>indeterminate</td><td>boolean?</td><td><code>[~]</code> for partial selection</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Interactive demo</h2>
+  <div class="demo-placeholder">Interactive demo coming soon</div>
+</WidgetLayout>

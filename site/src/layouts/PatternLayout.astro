@@ -1,0 +1,30 @@
+---
+import TuiLayout from './TuiLayout.astro';
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+<TuiLayout title={title} section="patterns">
+  <div class="page-grid">
+    <aside class="sidebar">
+      <h4>Patterns</h4>
+      <a href="#statusbar">StatusBar</a>
+      <a href="#validation">Validation</a>
+      <h4>Recipes</h4>
+      <a href="#alert">Alert</a>
+      <a href="#skeleton">Skeleton</a>
+      <a href="#tooltip">Tooltip</a>
+      <a href="#contextmenu">ContextMenu</a>
+      <a href="#splitter">Splitter</a>
+      <a href="#breadcrumb">Breadcrumb</a>
+      <a href="#accordion">Accordion</a>
+      <a href="#treeview">TreeView</a>
+    </aside>
+    <article>
+      <slot />
+    </article>
+  </div>
+</TuiLayout>

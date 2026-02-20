@@ -1,0 +1,30 @@
+---
+import TuiLayout from './TuiLayout.astro';
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+
+const surfaces = [
+  { href: '/sigil/surfaces/', label: 'Overview' },
+  { href: '/sigil/surfaces/dom/', label: 'DOM' },
+  { href: '/sigil/surfaces/terminal/', label: 'Terminal' },
+  { href: '/sigil/surfaces/threedee/', label: '3D' },
+];
+---
+<TuiLayout title={title} section="surfaces">
+  <div class="page-grid">
+    <aside class="sidebar">
+      {surfaces.map(({ href, label }) => (
+        <a href={href} aria-current={Astro.url.pathname.startsWith(href) ? 'page' : undefined}>
+          {label}
+        </a>
+      ))}
+    </aside>
+    <article>
+      <slot />
+    </article>
+  </div>
+</TuiLayout>

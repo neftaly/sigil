@@ -1,0 +1,47 @@
+---
+import TuiLayout from '../../layouts/TuiLayout.astro';
+---
+<TuiLayout title="Getting Started" section="getting started">
+  <h1>Getting Started</h1>
+
+  <h2>Install</h2>
+  <pre><code>npm install @neftaly/sigil</code></pre>
+
+  <h2>DOM</h2>
+  <pre><code>import {'{'} Box, Text {'}'} from '@neftaly/sigil'
+import {'{'} CharuiCanvas {'}'} from '@neftaly/sigil/dom'
+
+&lt;CharuiCanvas width={'{'}40{'}'} height={'{'}10{'}'}&gt;
+  &lt;Box border="single" padding={'{'}1{'}'}&gt;
+    &lt;Text&gt;Hello world&lt;/Text&gt;
+  &lt;/Box&gt;
+&lt;/CharuiCanvas&gt;</code></pre>
+
+  <h2>Terminal</h2>
+  <pre><code>import {'{'} Box, Text {'}'} from '@neftaly/sigil'
+import {'{'} createTerminalRoot {'}'} from '@neftaly/sigil/terminal'
+
+const app = createTerminalRoot();
+app.render(
+  &lt;Box border="single" padding={'{'}1{'}'}&gt;
+    &lt;Text&gt;Hello world&lt;/Text&gt;
+  &lt;/Box&gt;
+);</code></pre>
+
+  <pre class="ascii-mockup">┌──────────────────────────────────────┐
+│                                      │
+│  Hello world                         │
+│                                      │
+└──────────────────────────────────────┘</pre>
+
+  <h2>Imports</h2>
+  <table>
+    <thead><tr><th>Import</th><th>What</th></tr></thead>
+    <tbody>
+      <tr><td><code>@neftaly/sigil</code></td><td>Core, React primitives (Box, Text), widgets</td></tr>
+      <tr><td><code>@neftaly/sigil/dom</code></td><td>DOM surface + ARIA</td></tr>
+      <tr><td><code>@neftaly/sigil/terminal</code></td><td>ANSI surface + TerminalCanvas</td></tr>
+      <tr><td><code>@neftaly/sigil/threedee</code></td><td>3D debug visualization</td></tr>
+    </tbody>
+  </table>
+</TuiLayout>

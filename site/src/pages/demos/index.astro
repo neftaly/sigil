@@ -1,0 +1,240 @@
+---
+import TuiLayout from '../../layouts/TuiLayout.astro';
+---
+<TuiLayout title="Demos" section="demos">
+  <h1>Demos</h1>
+  <p>Full-screen mockups showing how widgets compose into real applications.</p>
+
+  <h2>Kitchen sink</h2>
+  <p>
+    Every core widget on one screen. Not a realistic app &mdash; a visual
+    reference for all components and states. The TextField is focused (rounded
+    border, primary color, visible cursor). Everything else is unfocused (single
+    border, default color).
+  </p>
+  <pre class="ascii-mockup">┌ Kitchen Sink ───────────────────────────────────────────────────────────────┐
+│                                                                             │
+│  ┌ Text Entry ───────────────────────────────────────────────────────────┐  │
+│  │                                                                       │  │
+│  │  TextField:    <span class="focused">╭────────────────────────╮</span>   Password: ┌────────────┐  │  │
+│  │                <span class="focused">│</span>Hello world█            <span class="focused">│</span>             │••••••••    │  │  │
+│  │                <span class="focused">╰────────────────────────╯</span>             └────────────┘  │  │
+│  │                 focused                                               │  │
+│  │                                                                       │  │
+│  │  Placeholder:  ┌────────────────────────┐                             │  │
+│  │                │Enter your name...      │                             │  │
+│  │                └────────────────────────┘                             │  │
+│  │                                                                       │  │
+│  │  NumberInput:  ◀  16  ▶                                               │  │
+│  │                                                                       │  │
+│  │  TextArea:                                                            │  │
+│  │  ┌────────────────────────────────────────────────────────────────┐   │  │
+│  │  │Multi-line editing with word wrap. The cursor blinks at the     │   │  │
+│  │  │end of the current line.                                        │   │  │
+│  │  └────────────────────────────────────────────────────────────────┘   │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  ┌ Selection ────────────────────────────────────────────────────────────┐  │
+│  │                                                                       │  │
+│  │  ListBox:             RadioGroup:          CheckBox:                  │  │
+│  │  ┌────────────────┐   ( ) Option A         [x] Enabled                │  │
+│  │  │  Item 1        │   (o) Option B         [ ] Verbose                │  │
+│  │  │  Item 2        │   ( ) Option C         [x] Auto-save              │  │
+│  │  │  Item 3        │                                                   │  │
+│  │  │  Item 4        │   CheckList:           Toggle:                    │  │
+│  │  └────────────────┘   ┌────────────────┐   ●━━ Dark mode              │  │
+│  │                       │[x] Alpha       │   ━━○ Animations             │  │
+│  │                       │[ ] Beta        │                              │  │
+│  │                       │[ ] Gamma       │                              │  │
+│  │                       └────────────────┘                              │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  ┌ Controls ─────────────────────────────────────────────────────────────┐  │
+│  │                                                                       │  │
+│  │  Slider:     ├████████████░░░░░░░░┤  64%                              │  │
+│  │                                                                       │  │
+│  │  Buttons:    ┌──────────┐  ┌──────────┐  ┌──────────┐                 │  │
+│  │              │ Save     │  │ Cancel   │  │ Disabled │                 │  │
+│  │              └──────────┘  └──────────┘  └──────────┘                 │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  ┌ Display ──────────────────────────────────────────────────────────────┐  │
+│  │                                                                       │  │
+│  │  ProgressBar:                                                         │  │
+│  │  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░       │  │
+│  │  Installing packages                              42%  1.2 MB/s       │  │
+│  │                                                                       │  │
+│  │  Spinner:    Loading... ⠹                                             │  │
+│  │                                                                       │  │
+│  │  ────────────────────────────────────────────────────────── divider   │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  ┌ Chrome ───────────────────────────────────────────────────────────────┐  │
+│  │                                                                       │  │
+│  │  ┌ Tabs ┐ Settings │ About │                                          │  │
+│  │  ├──────┴──────────┴────────────────────────────────────┐             │  │
+│  │  │ Tab content area. Switches on TabBar change.         │             │  │
+│  │  └──────────────────────────────────────────────────────┘             │  │
+│  │                                                                       │  │
+│  │  Embed:                                                               │  │
+│  │  ┌──────────────────────┐                                             │  │
+│  │  │ [native content]     │  DOM: arbitrary HTML / Terminal: fallback   │  │
+│  │  └──────────────────────┘                                             │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  ↑↓ Move  Space Toggle  Enter Confirm  Tab Next  Esc Cancel                 │
+└─────────────────────────────────────────────────────────────────────────────┘</pre>
+
+  <h2>Kit kitchen sink</h2>
+  <p>
+    Every v2 molecule on one screen. Shows compound components composed into an
+    army-builder app. The CommandPalette is focused (rounded border). Toasts
+    float in the top-right corner.
+  </p>
+  <pre class="ascii-mockup">┌ Army Builder ──────────────────────────────────────────────────────────────┐
+│                                                                            │
+│  Home / Armies / Iron Legion / Edit                                        │
+│                                                                            │
+│  ┌ Units ──────────────────────────────────────────────────────────────┐   │
+│  │ Unit             ▼ │  Pts  │  W  │  Role       │  Status           │   │
+│  ├────────────────────┼───────┼─────┼─────────────┼───────────────────┤   │
+│  │ Strike Team        │  200  │  2  │  Assault    │  Ready            │   │
+│  │ Siege Golem        │  150  │  8  │  Heavy      │  Ready            │   │
+│  │ Shield Wall        │  100  │  1  │  Defender   │  Wounded          │   │
+│  │ Sky Rangers        │  180  │  3  │  Fast       │  Ready            │   │
+│  ├────────────────────┼───────┼─────┼─────────────┼───────────────────┤   │
+│  │                Page 1 of 3       │  ◀  1  2  3  ▶                  │   │
+│  └────────────────────┴───────┴─────┴─────────────┴───────────────────┘   │
+│                                                                            │
+│  ┌ Unit Details ──────────────────────────────────────────┐                │
+│  │                                                        │                │
+│  │  Name: ┌──────────────────────────┐                    │                │
+│  │        │Strike Team               │                    │                │
+│  │        └──────────────────────────┘                    │                │
+│  │                                                        │                │
+│  │  Commander: ╭──────────────────────────╮               │  ┌───────────────────────────┐
+│  │             │Iron Leg█                 │               │  │  Settings saved           │
+│  │             ├──────────────────────────┤               │  └───────────────────────────┘
+│  │             │ <span class="focused">▸ Iron Legion Commander</span>  │               │  ┌───────────────────────────┐
+│  │             │   Iron Guard Captain     │               │  │  Unit added to roster     │
+│  │             └──────────────────────────┘               │  └───────────────────────────┘
+│  │                         autocomplete                   │   toasts
+│  │                                                        │                │
+│  │  Color: ├████████░░░░░░░░░░░░┤ R                       │                │
+│  │         ├████████████████░░░░┤ G   ████                │                │
+│  │         ├████████████░░░░░░░░┤ B  preview              │                │
+│  │         ┌──────────────┐                               │                │
+│  │         │#8B4513        │                               │                │
+│  │         └──────────────┘                               │                │
+│  │                                                        │                │
+│  │  Founded: ◀  March 2026  ▶                             │                │
+│  │                                                        │                │
+│  └────────────────────────────────────────────────────────┘                │
+│                                                                            │
+│  <span class="focused">╭─────────────────────────────────────────────╮</span>                           │
+│  <span class="focused">│</span> > add un█                                   <span class="focused">│</span>                           │
+│  <span class="focused">│</span> ┌─────────────────────────────────────────┐ <span class="focused">│</span>                           │
+│  <span class="focused">│</span> │ <span class="focused">▸ Add Unit</span>                              │ <span class="focused">│</span>                           │
+│  <span class="focused">│</span> │   Add Unit to Reserve                   │ <span class="focused">│</span>                           │
+│  <span class="focused">│</span> │   Undo Last Action                      │ <span class="focused">│</span>                           │
+│  <span class="focused">│</span> └─────────────────────────────────────────┘ <span class="focused">│</span>                           │
+│  <span class="focused">╰─────────────────────────────────────────────╯</span>                           │
+│   command palette (focused)                                                │
+│                                                                            │
+│  ↑↓ Move  Enter Select  Esc Close  Ctrl+K Command Palette                  │
+└────────────────────────────────────────────────────────────────────────────┘</pre>
+
+  <h2>Patterns kitchen sink</h2>
+  <p>
+    Every composition pattern on one screen. Shows a project settings app with
+    a split layout, tree navigation, accordion sections, and various overlays.
+  </p>
+  <pre class="ascii-mockup">┌ Project Settings ──────────────────────────────────────────────────────────┐
+│                                                                            │
+│  Home / Projects / Iron Legion / Settings                                  │
+│                                                  breadcrumb                │
+│  ┌ ℹ ──────────────────────────────────────────────────────────────────┐   │
+│  │  New version available (v2.1.0).                       [Update]     │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│   alert                                                                    │
+│                                                                            │
+│  ┌──────────────────│──────────────────────────────────────────────────┐   │
+│  │  ▾ src/          │                                                  │   │
+│  │    ▾ components/ │  ┌ General ────────────────────────────────────┐  │   │
+│  │        App.tsx   │  │  Name:    Iron Legion                       │  │   │
+│  │      <span class="focused">▸ Editor.tsx</span> │  │  Points:  630 / 1000                      │  │   │
+│  │    ▸ hooks/      │  │  Status:  Draft                             │  │   │
+│  │    ▸ utils/      │  └─────────────────────────────────────────────┘  │   │
+│  │    package.json  │  ▸ Equipment                                     │   │
+│  │    index.ts      │  ▸ Abilities                                     │   │
+│  │                  │  ▸ Notes                                         │   │
+│  │   tree view      │   accordion                                      │   │
+│  │                  │                                                  │   │
+│  │                  │  ┌──────────┐                                     │   │
+│  │                  │  │▸ Delete  │   ┌───────────────────────┐        │   │
+│  │                  │  └──────────┘   │ Remove unit from      │        │   │
+│  │                  │                 │ roster permanently.   │        │   │
+│  │                  │                 └───────────────────────┘        │   │
+│  │                  │                  tooltip                          │   │
+│  └──────────────────│──────────────────────────────────────────────────┘   │
+│   splitter                                                                 │
+│                                                                            │
+│  ┌────────────────────────────┐                                            │
+│  │ ░░░░░░░░░░░░░░░░░░░░░░░░   │                                            │
+│  │ ░░░░░░░░░░░░░░░░           │  Loading preview...                        │
+│  └────────────────────────────┘                                            │
+│   skeleton                                                                 │
+│                                                                            │
+│         ┌──────────┐                                                       │
+│         │ Rename   │                                                       │
+│         │ Delete   │  context menu                                         │
+│         │ Inspect  │                                                       │
+│         └──────────┘                                                       │
+│                                                                            │
+│  ↑↓ Navigate  Enter Open  Tab Switch Pane  Esc Cancel                      │
+└────────────────────────────────────────────────────────────────────────────┘</pre>
+
+  <h2>Dialog overlay</h2>
+  <p>
+    Dialog is focused (rounded border). It traps focus &mdash; Tab cycles within
+    it. Overlays are just high-z patches via the <code>z</code> prop on Box.
+  </p>
+  <pre class="ascii-mockup">┌──────────────────────────────────────┐
+│                                      │
+│  <span class="focused">╭ Confirm ───────────────────────╮</span>  │
+│  <span class="focused">│</span>                                <span class="focused">│</span>  │
+│  <span class="focused">│</span>  Discard unsaved changes?      <span class="focused">│</span>  │
+│  <span class="focused">│</span>                                <span class="focused">│</span>  │
+│  <span class="focused">│</span>  ▸ Yes     No                  <span class="focused">│</span>  │
+│  <span class="focused">╰────────────────────────────────╯</span>  │
+│                                      │
+└──────────────────────────────────────┘</pre>
+
+  <h2>File browser</h2>
+  <p>
+    File picker over the Web File System Access API. Covers async loading
+    patterns, keymap wiring, and widgets not shown in the other demos.
+    Directories sort before files, then alphabetical. Enter on a directory
+    navigates into it; enter on a file selects it.
+  </p>
+  <pre class="ascii-mockup">┌ File Browser ───────────────────────────────────────────────────┐
+│                                                                 │
+│  project/src                                    [Open Folder]   │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │   components/                                            │   │
+│  │   hooks/                                                 │   │
+│  │   utils/                                                 │   │
+│  │ ▸ App.tsx                                       3.2 KB   │   │
+│  │   index.ts                                        214 B  │   │
+│  │   types.ts                                      1.1 KB   │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐                       │
+│  │ Select   │  │ Up       │  │ Cancel   │                       │
+│  └──────────┘  └──────────┘  └──────────┘                       │
+│                                                                 │
+│  ↑↓ Navigate   Enter Open   Backspace Up   Esc Cancel           │
+└─────────────────────────────────────────────────────────────────┘</pre>
+
+</TuiLayout>

@@ -26,6 +26,8 @@ import {
   type CharuiContextValue,
   FlushEmitterContext,
 } from "./context.ts";
+import type { AriaManager } from "./aria.ts";
+import { createAriaManager } from "./aria.ts";
 import { measureCharWidth, renderToDOM, syncSelectionToDOM } from "./dom.ts";
 import { bindInput } from "./input-binding.ts";
 
@@ -107,6 +109,10 @@ export function CharuiCanvas({
 
   const prevGridRef = useRef<Cell[][] | null>(null);
   const bindingsRef = useRef<ReturnType<typeof bindInput> | null>(null);
+  const ariaManagerRef = useRef<AriaManager | null>(null);
+  const cellDimsRef = useRef<{ cellWidth: number; cellHeight: number } | null>(
+    null,
+  );
 
   const contextValue = useMemo<CharuiContextValue>(
     () => ({
@@ -133,6 +139,13 @@ export function CharuiCanvas({
     if (containerRef.current) {
       renderToDOM(containerRef.current, overlaid, prevGridRef.current);
       syncSelectionToDOM(containerRef.current, ctx.overlayState);
+      if (ariaManagerRef.current && cellDimsRef.current) {
+        ariaManagerRef.current.sync(
+          ctx.database,
+          cellDimsRef.current.cellWidth,
+          cellDimsRef.current.cellHeight,
+        );
+      }
     }
     prevGridRef.current = overlaid;
     return overlaid;
@@ -170,13 +183,15 @@ export function CharuiCanvas({
     });
   }, [children, ctx, canvasContextValue, flush, flushEmitter]);
 
-  // Bind input events
+  // Bind input events and create ARIA manager
   useEffect(() => {
     if (!containerRef.current) {
       return;
     }
     ensureSelectionStyle();
     const cellWidth = measureCharWidth(containerRef.current);
+    const lineHeight = parseFloat(getComputedStyle(containerRef.current).lineHeight) || 14;
+    cellDimsRef.current = { cellWidth, cellHeight: lineHeight };
     const bindings = bindInput(
       containerRef.current,
       ctx.database,
@@ -184,9 +199,14 @@ export function CharuiCanvas({
       cellWidth,
     );
     bindingsRef.current = bindings;
+    const ariaManager = createAriaManager(containerRef.current);
+    ariaManagerRef.current = ariaManager;
     return () => {
       bindings.dispose();
       bindingsRef.current = null;
+      ariaManager.dispose();
+      ariaManagerRef.current = null;
+      cellDimsRef.current = null;
     };
   }, [ctx.database, ctx.eventState]);
 
@@ -196,6 +216,7 @@ export function CharuiCanvas({
         ref={containerRef}
         className="charui-canvas"
         style={{
+          position: "relative",
           fontFamily: "inherit",
           fontSize: "14px",
           lineHeight: "normal",

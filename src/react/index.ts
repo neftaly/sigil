@@ -22,4 +22,4 @@ export {
   useTextCursor,
   useKeymap,
   useFilter,
-} from "./hooks-widgets.ts";
+} from "./widget-hooks.ts";

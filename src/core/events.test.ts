@@ -12,7 +12,7 @@ import {
   focusRelative,
   hitTest,
   isNavigationKey,
-  releasePointerCapture,
+  clearPointerCapture,
   setFocus,
   setPointerCapture,
 } from "./events.ts";
@@ -245,7 +245,7 @@ describe("pointer events", () => {
     expect(rightHandler).not.toHaveBeenCalled();
 
     // Release capture
-    releasePointerCapture(state);
+    clearPointerCapture(state);
 
     // Now move over right — should go to right
     dispatchPointerEvent(database, state, {

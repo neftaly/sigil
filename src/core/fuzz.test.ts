@@ -25,7 +25,7 @@ import {
   dispatchPointerEvent,
   focusRelative,
   hitTest,
-  releasePointerCapture,
+  clearPointerCapture,
   setFocus,
   setPointerCapture,
 } from "./events.ts";
@@ -623,7 +623,7 @@ describe("fuzz: events", () => {
             dispatchPointerEvent(db, state, event);
           }
 
-          releasePointerCapture(state);
+          clearPointerCapture(state);
           expect(state.capturedNodeId).toBeNull();
 
           removeNode(db, "root");

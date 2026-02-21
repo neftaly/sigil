@@ -14,6 +14,8 @@ import {
   applyYogaStyles,
   measureText,
   removeNode,
+  setTextMeasureFunc,
+  setRoot,
   updateNode,
 } from "../core/index.ts";
 
@@ -182,22 +184,6 @@ function insertChildBefore(
   parent.yogaNode.insertChild(child.yogaNode, yogaIndex);
 }
 
-function setTextMeasureFunc(node: LayoutNode, props: TextNodeProps) {
-  const content = props.content ?? "";
-  const wrapMode: WrapMode = props.wrap ? "wrap" : "nowrap";
-
-  node.yogaNode.setMeasureFunc((maxWidth, widthMode) => {
-    // MeasureMode.Undefined = 0
-    const width = widthMode === 0 ? Infinity : maxWidth;
-    const measured = measureText(content, wrapMode, width);
-    return { width: measured.width, height: measured.height };
-  });
-
-  // Mark the node dirty so Yoga knows to re-measure
-  if (node.yogaNode.getChildCount() === 0) {
-    node.yogaNode.markDirty();
-  }
-}
 
 /** Detach an inlined text child from its text parent. */
 function detachInlinedChild(
@@ -411,7 +397,7 @@ export function createReconciler(
 
     appendChildToContainer(_container: Database, child: LayoutNode) {
       // The child becomes the root
-      database.rootId = child.id;
+      setRoot(database, child.id);
     },
 
     removeChild(parent: LayoutNode, child: LayoutNode) {

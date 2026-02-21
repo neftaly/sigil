@@ -86,7 +86,7 @@ export function addNode(
   database.nodes.set(options.id, node);
 
   if (options.parentId === null) {
-    database.rootId = options.id;
+    setRoot(database, options.id);
   } else {
     const parent = database.nodes.get(options.parentId);
     if (parent) {
@@ -122,7 +122,7 @@ export function removeNode(database: Database, id: string) {
   }
 
   if (database.rootId === id) {
-    database.rootId = null;
+    setRoot(database, null);
   }
 
   // Cleanup Yoga node: unset measureFunc before freeing to prevent crashes
@@ -141,6 +141,10 @@ export function updateNode(
     return;
   }
   node.props = { ...node.props, ...props };
+}
+
+export function setRoot(database: Database, nodeId: string | null) {
+  database.rootId = nodeId;
 }
 
 export function computeLayout(

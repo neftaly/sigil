@@ -10,7 +10,7 @@ import {
   createFlushEmitter,
   dispatchPointerEvent,
   focusAndDispatch,
-  releasePointerCapture,
+  clearPointerCapture,
 } from "../src/core/index.ts";
 import { FlushEmitterContext } from "../src/dom/index.ts";
 import {
@@ -189,7 +189,7 @@ function TerminalPane({
       if (mouse.type === "pointerdown") {
         // Guard: release stale capture from a missed pointerup
         if (es.capturedNodeId) {
-          releasePointerCapture(es);
+          clearPointerCapture(es);
         }
         focusAndDispatch(db, es, event);
       } else {
@@ -200,7 +200,7 @@ function TerminalPane({
         (mouse.type === "pointerup" || mouse.type === "pointercancel") &&
         es.capturedNodeId
       ) {
-        releasePointerCapture(es);
+        clearPointerCapture(es);
       }
     });
 

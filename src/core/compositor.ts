@@ -1,6 +1,6 @@
 import stringWidth from "string-width";
 
-import { type Cell, type CellStyle, createGrid } from "./cell.ts";
+import { type Cell, createGrid } from "./cell.ts";
 
 /** A rectangular region of cells at a position and z-level. */
 export interface Patch {

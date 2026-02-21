@@ -26,8 +26,7 @@ import {
   type CharuiContextValue,
   FlushEmitterContext,
 } from "./context.ts";
-import type { AriaManager } from "./aria.ts";
-import { createAriaManager } from "./aria.ts";
+import { type AriaManager, createAriaManager } from "./aria.ts";
 import { measureCharWidth, renderToDOM, syncSelectionToDOM } from "./dom.ts";
 import { bindInput } from "./input-binding.ts";
 

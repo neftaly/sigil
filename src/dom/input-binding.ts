@@ -12,7 +12,7 @@ import {
   dispatchTextUpdateEvent,
   focusAndDispatch,
   isNavigationKey,
-  releasePointerCapture,
+  clearPointerCapture,
 } from "../core/index.ts";
 
 import { pixelToGrid } from "./dom.ts";
@@ -162,7 +162,7 @@ export function bindInput(
 
     if (type === "pointerup" || type === "pointercancel") {
       if (eventState.capturedNodeId) {
-        releasePointerCapture(eventState);
+        clearPointerCapture(eventState);
       }
       if (capturedDomPointerId !== null) {
         container.releasePointerCapture(capturedDomPointerId);

@@ -4,7 +4,7 @@ import {
   type EventState,
   type LayoutNode,
   type PointerEvent,
-  releasePointerCapture,
+  clearPointerCapture,
   setPointerCapture,
 } from "../core/index.ts";
 
@@ -73,7 +73,7 @@ export function useDrag(options: UseDragOptions): DragState {
       };
       draggingRef.current = false;
       setDelta({ col: 0, row: 0 });
-      releasePointerCapture(eventState);
+      clearPointerCapture(eventState);
       onDragEnd?.(finalDelta);
     },
     [eventState, onDragEnd],
@@ -85,7 +85,7 @@ export function useDrag(options: UseDragOptions): DragState {
     }
     draggingRef.current = false;
     setDelta({ col: 0, row: 0 });
-    releasePointerCapture(eventState);
+    clearPointerCapture(eventState);
   }, [eventState]);
 
   return {

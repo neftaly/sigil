@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createGrid } from "./cell.ts";
 import {
   applyOverlays,
-  applyOverlaysToNodeGrid,
+  applyOverlaysToGrid,
   createOverlayState,
   removeOverlay,
   setOverlay,
@@ -159,11 +159,11 @@ describe("applyOverlays", () => {
   });
 });
 
-describe("applyOverlaysToNodeGrid", () => {
+describe("applyOverlaysToGrid", () => {
   it("returns original grid when no overlays", () => {
     const grid = createGrid(3, 2);
     const state = createOverlayState();
-    const result = applyOverlaysToNodeGrid(
+    const result = applyOverlaysToGrid(
       grid,
       { x: 5, y: 5, width: 3, height: 2 },
       state,
@@ -185,7 +185,7 @@ describe("applyOverlaysToNodeGrid", () => {
     });
 
     // Node at (10, 5) with size 3x1 → local col 0
-    const result = applyOverlaysToNodeGrid(
+    const result = applyOverlaysToGrid(
       grid,
       { x: 10, y: 5, width: 3, height: 1 },
       state,
@@ -208,7 +208,7 @@ describe("applyOverlaysToNodeGrid", () => {
       transform: { type: "invert" },
     });
 
-    const result = applyOverlaysToNodeGrid(
+    const result = applyOverlaysToGrid(
       grid,
       { x: 50, y: 50, width: 3, height: 1 },
       state,

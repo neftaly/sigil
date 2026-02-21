@@ -1,5 +1,8 @@
 import stringWidth from "string-width";
 
+import type { LayoutNode } from "./database.ts";
+import type { TextNodeProps } from "./types.ts";
+
 export type WrapMode = "nowrap" | "wrap";
 
 /** Measure text dimensions for Yoga's measureFunc. */
@@ -20,6 +23,23 @@ export function measureText(
   const lines = wrapText(text, maxWidth);
   const widestLine = Math.max(...lines.map((line) => stringWidth(line)));
   return { width: widestLine, height: lines.length };
+}
+
+/** Set Yoga's measureFunc on a text node so layout can measure it. */
+export function setTextMeasureFunc(node: LayoutNode, props: TextNodeProps) {
+  const content = props.content ?? "";
+  const wrapMode: WrapMode = props.wrap ? "wrap" : "nowrap";
+
+  node.yogaNode.setMeasureFunc((maxWidth, widthMode) => {
+    const width = widthMode === 0 ? Infinity : maxWidth;
+    const measured = measureText(content, wrapMode, width);
+    return { width: measured.width, height: measured.height };
+  });
+
+  // Mark the node dirty so Yoga knows to re-measure
+  if (node.yogaNode.getChildCount() === 0) {
+    node.yogaNode.markDirty();
+  }
 }
 
 /** Wrap text at word boundaries within maxWidth. */

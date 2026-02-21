@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { measureText, wrapText } from "./measure.ts";
+import {
+  addNode,
+  computeLayout,
+  createDatabase,
+} from "./database.ts";
+import { measureText, setTextMeasureFunc, wrapText } from "./measure.ts";
+import { applyYogaStyles } from "./yoga-styles.ts";
 
 describe("measureText", () => {
   it("measures empty string as 0x0", () => {
@@ -55,5 +61,103 @@ describe("wrapText", () => {
 
   it("returns one empty line for empty string", () => {
     expect(wrapText("", 10)).toEqual([""]);
+  });
+});
+
+describe("setTextMeasureFunc", () => {
+  it("sets measureFunc for simple text", () => {
+    const database = createDatabase();
+    const root = addNode(database, {
+      id: "root",
+      type: "box",
+      props: { alignItems: "flex-start" },
+      parentId: null,
+    });
+    const textNode = addNode(database, {
+      id: "text",
+      type: "text",
+      props: { content: "Hello" },
+      parentId: "root",
+    });
+
+    applyYogaStyles(root, root.props);
+    applyYogaStyles(textNode, textNode.props);
+    setTextMeasureFunc(textNode, { content: "Hello" });
+    computeLayout(database, 80, 24);
+
+    expect(textNode.bounds?.width).toBe(5);
+    expect(textNode.bounds?.height).toBe(1);
+  });
+
+  it("wraps text when wrap prop is true", () => {
+    const database = createDatabase();
+    const root = addNode(database, {
+      id: "root",
+      type: "box",
+      props: { width: 10 },
+      parentId: null,
+    });
+    const textNode = addNode(database, {
+      id: "text",
+      type: "text",
+      props: { content: "Hello World!", wrap: true },
+      parentId: "root",
+    });
+
+    applyYogaStyles(root, root.props);
+    applyYogaStyles(textNode, textNode.props);
+    setTextMeasureFunc(textNode, { content: "Hello World!", wrap: true });
+    computeLayout(database, 80, 24);
+
+    expect(textNode.bounds!.height).toBeGreaterThan(1);
+  });
+
+  it("handles empty content", () => {
+    const database = createDatabase();
+    const root = addNode(database, {
+      id: "root",
+      type: "box",
+      props: { alignItems: "flex-start" },
+      parentId: null,
+    });
+    const textNode = addNode(database, {
+      id: "text",
+      type: "text",
+      props: { content: "" },
+      parentId: "root",
+    });
+
+    applyYogaStyles(root, root.props);
+    applyYogaStyles(textNode, textNode.props);
+    setTextMeasureFunc(textNode, { content: "" });
+    computeLayout(database, 80, 24);
+
+    expect(textNode.bounds?.width).toBe(0);
+    expect(textNode.bounds?.height).toBe(0);
+  });
+
+  it("nowrap mode keeps text on single line", () => {
+    const database = createDatabase();
+    const root = addNode(database, {
+      id: "root",
+      type: "box",
+      props: { width: 10 },
+      parentId: null,
+    });
+    const textNode = addNode(database, {
+      id: "text",
+      type: "text",
+      props: { content: "This is a long piece of text that should not wrap" },
+      parentId: "root",
+    });
+
+    applyYogaStyles(root, root.props);
+    applyYogaStyles(textNode, textNode.props);
+    setTextMeasureFunc(textNode, {
+      content: "This is a long piece of text that should not wrap",
+    });
+    computeLayout(database, 80, 24);
+
+    expect(textNode.bounds?.height).toBe(1);
   });
 });

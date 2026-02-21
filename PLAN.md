@@ -57,7 +57,7 @@ React JSX -> Reconciler -> Layout Database -> Cell Grid -> Backend
 - `borders.ts` -- `writeBorder` using `cli-boxes` border characters (single, double, rounded, etc.)
 - `rasterize.ts` -- walk tree, write chars/borders to `Cell[][]` with clipping. Handle wide chars with continuation cells.
 - `events.ts` -- `EventState`, `PointerEvent`, `KeyEvent`, `FocusEvent`, `TextUpdateEvent`. Hit testing (tree walk, back-to-front for z-order). Focus management with tab cycling. Pointer capture. Capture/bubble dispatch matching React DOM. `handlePointerDown()` centralizes hitTest → findFocusable → setFocus → dispatch so backends don't duplicate focus logic.
-- `overlays.ts` -- `OverlayState`, `setOverlay`, `removeOverlay`, `applyOverlays`. Post-rasterization transforms (invert, merge). Priority-based stacking. `applyOverlaysToNodeGrid()` for per-node overlay application (3D backend).
+- `overlays.ts` -- `OverlayState`, `setOverlay`, `removeOverlay`, `applyOverlays`. Post-rasterization transforms (invert, merge). Priority-based stacking. `applyOverlaysToGrid()` for per-node overlay application (3D backend).
 - `flush-emitter.ts` -- `FlushEmitter` with `emit(snapshot)` / `subscribe(callback)`. `FlushSnapshot` bundles `{ database, grid, overlayState, eventState }`. Replaces old DatabaseReporterContext pattern.
 - `yoga-styles.ts` -- `applyYogaStyles(database, node, props)` maps typed props to Yoga API calls. Extracted from reconciler for reuse and testability.
 - `types.ts` -- `NodeProps = BoxNodeProps | TextNodeProps` discriminated union. Typed prop interfaces instead of `Record<string, unknown>`.

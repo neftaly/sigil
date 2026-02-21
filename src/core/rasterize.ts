@@ -409,7 +409,7 @@ function renderScrollIndicators(
     return;
   }
 
-  const { scrollX, scrollY } = getScrollProps(node.props);
+  const { scrollY } = getScrollProps(node.props);
   const content = contentArea(bounds, node.props);
   const style = buildCellStyle(node.props);
   const childExtent = computeChildContentExtent(database, node);
@@ -715,8 +715,8 @@ function collectPatches(
  */
 export function rasterizeToPatches(
   database: Database,
-  width: number,
-  height: number,
+  _width: number,
+  _height: number,
 ): Patch[] {
   const patches: Patch[] = [];
 

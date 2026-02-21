@@ -1,6 +1,5 @@
-import React from "react";
+import React, { createElement } from "react";
 import { describe, expect, it } from "vitest";
-import { createElement } from "react";
 
 import { createRoot } from "../react/render.ts";
 import { RadioGroup } from "./RadioGroup.tsx";

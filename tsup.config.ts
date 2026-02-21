@@ -3,6 +3,8 @@ import { defineConfig } from "tsup";
 export default defineConfig({
   entry: {
     index: "src/index.ts",
+    "core/index": "src/core/index.ts",
+    "react/index": "src/react/index.ts",
     "dom/index": "src/dom/index.ts",
     "terminal/index": "src/terminal/index.ts",
     "threedee/index": "src/threedee/index.ts",

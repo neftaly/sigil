@@ -17,12 +17,13 @@ export {
   addNode,
   removeNode,
   updateNode,
+  setRoot,
   computeLayout,
   subscribe,
   scrollIntoView,
 } from "./database.ts";
 export { type BorderStyle, writeBorder } from "./borders.ts";
-export { type WrapMode, measureText, wrapText } from "./measure.ts";
+export { type WrapMode, measureText, setTextMeasureFunc, wrapText } from "./measure.ts";
 export { type Patch, compose } from "./compositor.ts";
 export { rasterize, rasterizeOne, rasterizeToPatches } from "./rasterize.ts";
 export {
@@ -37,7 +38,7 @@ export {
   findFocusable,
   focusRelative,
   setPointerCapture,
-  releasePointerCapture,
+  clearPointerCapture,
   setHoveredNode,
   focusAndDispatch,
   dispatchPointerEvent,
@@ -72,7 +73,7 @@ export {
   setOverlay,
   removeOverlay,
   applyOverlays,
-  applyOverlaysToNodeGrid,
+  applyOverlaysToGrid,
 } from "./overlays.ts";
 export {
   type KeyBinding,

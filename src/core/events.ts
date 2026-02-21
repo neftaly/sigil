@@ -225,7 +225,7 @@ export function setPointerCapture(state: EventState, nodeId: string) {
   state.capturedNodeId = nodeId;
 }
 
-export function releasePointerCapture(state: EventState) {
+export function clearPointerCapture(state: EventState) {
   state.capturedNodeId = null;
 }
 

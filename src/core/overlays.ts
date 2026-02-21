@@ -71,7 +71,7 @@ export function applyOverlays(
 
 // --- Apply overlays to a single node's grid (for 3D renderer) ---
 
-export function applyOverlaysToNodeGrid(
+export function applyOverlaysToGrid(
   grid: Cell[][],
   nodeBounds: Bounds,
   overlayState: OverlayState,

@@ -1,10 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { addNode, computeLayout, createDatabase } from "../core/database.ts";
-import type { Database } from "../core/database.ts";
-import { createAriaManager } from "./aria.ts";
-import type { AriaManager } from "./aria.ts";
+import { type Database, addNode, computeLayout, createDatabase } from "../core/database.ts";
+import { type AriaManager, createAriaManager } from "./aria.ts";
 
 let container: HTMLElement;
 let manager: AriaManager;

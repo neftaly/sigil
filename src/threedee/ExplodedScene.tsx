@@ -17,7 +17,7 @@ import {
   type Database,
   type LayoutNode,
   type OverlayState,
-  applyOverlaysToNodeGrid,
+  applyOverlaysToGrid,
   groupCells,
   rasterizeOne,
   subscribe,
@@ -232,7 +232,7 @@ function NodePlane({
       return [];
     }
     if (overlayState && node.bounds) {
-      grid = applyOverlaysToNodeGrid(grid, node.bounds, overlayState);
+      grid = applyOverlaysToGrid(grid, node.bounds, overlayState);
     }
     const result: TextRun[] = [];
     for (let row = 0; row < grid.length; row++) {

@@ -4,7 +4,7 @@ import {
   type EventState,
   type LayoutNode,
   type PointerEvent,
-  releasePointerCapture,
+  clearPointerCapture,
   setPointerCapture,
 } from "../core/index.ts";
 
@@ -103,7 +103,7 @@ export function useResize(options: UseResizeOptions): ResizeState {
       return;
     }
     resizingRef.current = false;
-    releasePointerCapture(eventState);
+    clearPointerCapture(eventState);
   }, [eventState]);
 
   const onPointerCancel = useCallback(() => {
@@ -116,7 +116,7 @@ export function useResize(options: UseResizeOptions): ResizeState {
       height: startRef.current.height,
     };
     setSize(rollback);
-    releasePointerCapture(eventState);
+    clearPointerCapture(eventState);
     onResize?.(rollback);
   }, [eventState, onResize]);
 

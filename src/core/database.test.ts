@@ -5,6 +5,7 @@ import {
   computeLayout,
   createDatabase,
   removeNode,
+  setRoot,
   subscribe,
   updateNode,
 } from "./database.ts";
@@ -192,5 +193,46 @@ describe("subscribe", () => {
     computeLayout(database, 10, 10);
     expect(a).toHaveBeenCalledOnce();
     expect(b).toHaveBeenCalledOnce();
+  });
+});
+
+describe("setRoot", () => {
+  it("sets the root node", () => {
+    const database = createDatabase();
+    addNode(database, {
+      id: "myroot",
+      type: "box",
+      props: {},
+      parentId: null,
+    });
+
+    // Verify setRoot works when called explicitly (addNode calls it for parentId: null)
+    setRoot(database, "myroot");
+    expect(database.rootId).toBe("myroot");
+  });
+
+  it("clears the root when given null", () => {
+    const database = createDatabase();
+    addNode(database, { id: "root", type: "box", props: {}, parentId: null });
+    expect(database.rootId).toBe("root");
+
+    setRoot(database, null);
+    expect(database.rootId).toBeNull();
+  });
+
+  it("can switch the root to a different node", () => {
+    const database = createDatabase();
+    addNode(database, { id: "first", type: "box", props: {}, parentId: null });
+    addNode(database, {
+      id: "second",
+      type: "box",
+      props: {},
+      parentId: "first",
+    });
+
+    expect(database.rootId).toBe("first");
+
+    setRoot(database, "second");
+    expect(database.rootId).toBe("second");
   });
 });

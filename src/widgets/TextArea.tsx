@@ -2,8 +2,21 @@ import React, { useCallback, useEffect, useState } from "react";
 
 import { Box, Text } from "../react/primitives.tsx";
 import { useTheme } from "../react/theme.tsx";
-import type { KeyEvent } from "../core/events.ts";
-import { getBorderProps, useFocusState } from "./shared.ts";
+import type { KeyEvent, PointerEvent } from "../core/events.ts";
+import { useHover } from "../react/useHover.ts";
+import { getBorderPropsWithHover, useFocusState } from "./shared.ts";
+import { renderStyledLine } from "./text-rendering.tsx";
+import { wordBoundaryLeft, wordBoundaryRight } from "./text-utils.ts";
+import {
+  type CursorPos,
+  computeNavigation,
+  cursorToOffset,
+  getSelectionRange,
+  handleEditing,
+  handleTextInsertion,
+  logicalToDisplayRow,
+  wrapLine,
+} from "./textarea-helpers.ts";
 
 export interface TextAreaProps {
   value: string;
@@ -15,207 +28,6 @@ export interface TextAreaProps {
   readOnly?: boolean;
   disabled?: boolean;
   "aria-label"?: string;
-}
-
-interface CursorPos {
-  line: number;
-  col: number;
-}
-
-/**
- * Wrap a single line to fit within maxWidth, returning the wrapped sub-lines.
- */
-function wrapLine(line: string, maxWidth: number): string[] {
-  if (maxWidth <= 0) return [line];
-  if (line.length <= maxWidth) return [line];
-
-  const result: string[] = [];
-  for (let i = 0; i < line.length; i += maxWidth) {
-    result.push(line.slice(i, i + maxWidth));
-  }
-  return result;
-}
-
-/**
- * Convert a cursor in logical (line, col) to a display row when wrapping is active.
- */
-function logicalToDisplayRow(
-  lines: string[],
-  cursor: CursorPos,
-  maxWidth: number,
-  doWrap: boolean,
-): number {
-  let displayRow = 0;
-  for (let i = 0; i < cursor.line && i < lines.length; i++) {
-    if (doWrap) {
-      displayRow += wrapLine(lines[i], maxWidth).length;
-    } else {
-      displayRow += 1;
-    }
-  }
-  if (doWrap && cursor.line < lines.length) {
-    displayRow += Math.floor(cursor.col / maxWidth);
-  }
-  return displayRow;
-}
-
-/**
- * Handle navigation keys: ArrowLeft, ArrowRight, ArrowUp, ArrowDown, Home, End.
- * Returns true if the event was handled.
- */
-function handleNavigation(
-  event: KeyEvent,
-  currentLines: string[],
-  setCursor: React.Dispatch<React.SetStateAction<CursorPos>>,
-): boolean | undefined {
-  if (event.key === "ArrowLeft") {
-    setCursor((c) => {
-      if (c.col > 0) return { line: c.line, col: c.col - 1 };
-      if (c.line > 0) {
-        const prevLine = currentLines[c.line - 1] ?? "";
-        return { line: c.line - 1, col: prevLine.length };
-      }
-      return c;
-    });
-    return true;
-  }
-
-  if (event.key === "ArrowRight") {
-    setCursor((c) => {
-      const currentLine = currentLines[c.line] ?? "";
-      if (c.col < currentLine.length)
-        return { line: c.line, col: c.col + 1 };
-      if (c.line < currentLines.length - 1)
-        return { line: c.line + 1, col: 0 };
-      return c;
-    });
-    return true;
-  }
-
-  if (event.key === "ArrowUp") {
-    setCursor((c) => {
-      if (c.line > 0) {
-        const prevLine = currentLines[c.line - 1] ?? "";
-        return { line: c.line - 1, col: Math.min(c.col, prevLine.length) };
-      }
-      return c;
-    });
-    return true;
-  }
-
-  if (event.key === "ArrowDown") {
-    setCursor((c) => {
-      if (c.line < currentLines.length - 1) {
-        const nextLine = currentLines[c.line + 1] ?? "";
-        return { line: c.line + 1, col: Math.min(c.col, nextLine.length) };
-      }
-      return c;
-    });
-    return true;
-  }
-
-  if (event.key === "Home") {
-    setCursor((c) => ({ line: c.line, col: 0 }));
-    return true;
-  }
-
-  if (event.key === "End") {
-    setCursor((c) => ({
-      line: c.line,
-      col: (currentLines[c.line] ?? "").length,
-    }));
-    return true;
-  }
-}
-
-/**
- * Handle editing keys: Enter, Backspace, Delete.
- * Returns true if the event was handled.
- */
-function handleEditing(
-  event: KeyEvent,
-  currentLines: string[],
-  cursor: CursorPos,
-  setCursor: React.Dispatch<React.SetStateAction<CursorPos>>,
-  onChange: ((value: string) => void) | undefined,
-): boolean | undefined {
-  if (event.key === "Enter") {
-    const line = currentLines[cursor.line] ?? "";
-    const before = line.slice(0, cursor.col);
-    const after = line.slice(cursor.col);
-    const newLines = [...currentLines];
-    newLines.splice(cursor.line, 1, before, after);
-    setCursor({ line: cursor.line + 1, col: 0 });
-    onChange?.(newLines.join("\n"));
-    return true;
-  }
-
-  if (event.key === "Backspace") {
-    if (cursor.col > 0) {
-      const line = currentLines[cursor.line] ?? "";
-      const newLine =
-        line.slice(0, cursor.col - 1) + line.slice(cursor.col);
-      const newLines = [...currentLines];
-      newLines[cursor.line] = newLine;
-      setCursor((c) => ({ line: c.line, col: c.col - 1 }));
-      onChange?.(newLines.join("\n"));
-    } else if (cursor.line > 0) {
-      // Merge with previous line.
-      const prevLine = currentLines[cursor.line - 1] ?? "";
-      const currentLine = currentLines[cursor.line] ?? "";
-      const newLines = [...currentLines];
-      newLines.splice(cursor.line - 1, 2, prevLine + currentLine);
-      setCursor({ line: cursor.line - 1, col: prevLine.length });
-      onChange?.(newLines.join("\n"));
-    }
-    return true;
-  }
-
-  if (event.key === "Delete") {
-    const line = currentLines[cursor.line] ?? "";
-    if (cursor.col < line.length) {
-      const newLine =
-        line.slice(0, cursor.col) + line.slice(cursor.col + 1);
-      const newLines = [...currentLines];
-      newLines[cursor.line] = newLine;
-      onChange?.(newLines.join("\n"));
-    } else if (cursor.line < currentLines.length - 1) {
-      // Merge with next line.
-      const nextLine = currentLines[cursor.line + 1] ?? "";
-      const newLines = [...currentLines];
-      newLines.splice(cursor.line, 2, line + nextLine);
-      onChange?.(newLines.join("\n"));
-    }
-    return true;
-  }
-}
-
-/**
- * Handle printable character insertion.
- * Returns true if the event was handled.
- */
-function handleTextInsertion(
-  event: KeyEvent,
-  currentLines: string[],
-  cursor: CursorPos,
-  setCursor: React.Dispatch<React.SetStateAction<CursorPos>>,
-  onChange: ((value: string) => void) | undefined,
-): boolean | undefined {
-  if (
-    event.key.length === 1 &&
-    !event.ctrlKey &&
-    !event.altKey &&
-    !event.metaKey
-  ) {
-    const line = currentLines[cursor.line] ?? "";
-    const newLine =
-      line.slice(0, cursor.col) + event.key + line.slice(cursor.col);
-    const newLines = [...currentLines];
-    newLines[cursor.line] = newLine;
-    setCursor((c) => ({ line: c.line, col: c.col + 1 }));
-    onChange?.(newLines.join("\n"));
-    return true;
-  }
 }
 
 export function TextArea({
@@ -230,9 +42,17 @@ export function TextArea({
   "aria-label": ariaLabel,
 }: TextAreaProps) {
   const theme = useTheme();
-  const { focused, onFocus, onBlur } = useFocusState();
+  const { focused, onFocus, onBlur: onBlurBase } = useFocusState();
+  const { hovered, onPointerEnter, onPointerLeave } = useHover();
   const [cursor, setCursor] = useState<CursorPos>({ line: 0, col: 0 });
   const [scrollY, setScrollY] = useState(0);
+  const [hScrollOffset, setHScrollOffset] = useState(0);
+  const [selectionAnchor, setSelectionAnchor] = useState<CursorPos | null>(null);
+
+  const onBlur = useCallback(() => {
+    onBlurBase();
+    setSelectionAnchor(null);
+  }, [onBlurBase]);
 
   const innerWidth = Math.max(1, width - 2);
   const innerHeight = Math.max(1, height - 2);
@@ -244,6 +64,13 @@ export function TextArea({
     setCursor((prev) => {
       const line = Math.min(prev.line, lines.length - 1);
       const col = Math.min(prev.col, (lines[line] ?? "").length);
+      return { line, col };
+    });
+    setSelectionAnchor((prev) => {
+      if (!prev) return null;
+      const newLines = value.split("\n");
+      const line = Math.min(prev.line, newLines.length - 1);
+      const col = Math.min(prev.col, newLines[line].length);
       return { line, col };
     });
   }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -269,40 +96,242 @@ export function TextArea({
     wrap,
   );
 
-  // Auto-scroll to keep cursor visible.
+  // Auto-scroll to keep cursor visible, accounting for scroll indicator rows.
+  const totalDisplayLines = displayLines.length;
   useEffect(() => {
     setScrollY((prev) => {
+      // Compute effective content rows for a given scrollY candidate
+      const effectiveRows = (sy: number) => {
+        const up = sy > 0 ? 1 : 0;
+        const down = sy + innerHeight - up < totalDisplayLines ? 1 : 0;
+        return Math.max(1, innerHeight - up - down);
+      };
+      const prevRows = effectiveRows(prev);
       if (cursorDisplayRow < prev) return cursorDisplayRow;
-      if (cursorDisplayRow >= prev + innerHeight)
-        return cursorDisplayRow - innerHeight + 1;
+      if (cursorDisplayRow >= prev + prevRows) {
+        const newSy = cursorDisplayRow - effectiveRows(cursorDisplayRow) + 1;
+        return Math.max(0, newSy);
+      }
       return prev;
     });
-  }, [cursorDisplayRow, innerHeight]);
+  }, [cursorDisplayRow, innerHeight, totalDisplayLines]);
+
+  // Auto-scroll horizontally to keep cursor visible in non-wrap mode.
+  useEffect(() => {
+    if (wrap) return;
+    setHScrollOffset((prev) => {
+      if (cursor.col < prev) return cursor.col;
+      if (cursor.col >= prev + innerWidth) return cursor.col - innerWidth + 1;
+      return prev;
+    });
+  }, [wrap, cursor.col, innerWidth]);
+
+  // Pre-compute content rows (how many display lines fit, excluding scroll indicators).
+  const canScrollUpEarly = scrollY > 0;
+  const upRowsEarly = canScrollUpEarly ? 1 : 0;
+  const canScrollDownEarly = scrollY + (innerHeight - upRowsEarly) < displayLines.length;
+  const indicatorRowsEarly = (canScrollUpEarly ? 1 : 0) + (canScrollDownEarly ? 1 : 0);
+  const contentRows = Math.max(1, innerHeight - indicatorRowsEarly);
+
+  // Compute click position as CursorPos from pointer event data.
+  const computeClickCursor = useCallback(
+    (event: PointerEvent): CursorPos | null => {
+      const bounds = event.currentTargetBounds;
+      if (!bounds) return null;
+      // Account for border (1 col left, 1 row top) and scroll-up indicator
+      const indicatorOffset = scrollY > 0 ? 1 : 0;
+      const relCol = event.col - bounds.x - 1;
+      const relRow = event.row - bounds.y - 1 - indicatorOffset;
+
+      // Reject clicks on scroll indicator rows
+      if (relRow < 0) return null;
+      if (relRow >= contentRows) return null;
+
+      const displayRow = scrollY + relRow;
+
+      if (wrap) {
+        // Walk display lines to find the logical line and column
+        let displayIdx = 0;
+        for (let i = 0; i < lines.length; i++) {
+          const wrapped = wrapLine(lines[i], innerWidth);
+          if (displayRow < displayIdx + wrapped.length) {
+            const subLineIdx = displayRow - displayIdx;
+            const col = Math.min(
+              subLineIdx * innerWidth + relCol,
+              lines[i].length,
+            );
+            return { line: i, col: Math.max(0, col) };
+          }
+          displayIdx += wrapped.length;
+        }
+      } else {
+        // No wrapping: display row = logical line, translate relCol through hScrollOffset
+        const line = Math.max(0, Math.min(lines.length - 1, displayRow));
+        const col = Math.max(0, Math.min((lines[line] ?? "").length, relCol + hScrollOffset));
+        return { line, col };
+      }
+      return null;
+    },
+    [scrollY, lines, innerWidth, wrap, contentRows, hScrollOffset],
+  );
+
+  const handlePointerDown = useCallback(
+    (event: PointerEvent) => {
+      if (disabled) return;
+      const clickPos = computeClickCursor(event);
+      if (!clickPos) return;
+
+      if (event.shiftKey) {
+        // Shift+click extends selection
+        if (!selectionAnchor) {
+          setSelectionAnchor({ ...cursor });
+        }
+        setCursor(clickPos);
+      } else {
+        // Normal click clears selection
+        setSelectionAnchor(null);
+        setCursor(clickPos);
+      }
+      return true;
+    },
+    [disabled, computeClickCursor, selectionAnchor, cursor],
+  );
 
   const handleKeyDown = useCallback(
     (event: KeyEvent) => {
       if (disabled) return;
 
       const currentLines = value.split("\n");
+      const isShift = event.shiftKey;
+
+      // Select all (Ctrl+A).
+      if (event.ctrlKey && event.key === "a") {
+        const lastLine = currentLines.length - 1;
+        const lastLineLength = (currentLines[lastLine] ?? "").length;
+        setSelectionAnchor({ line: 0, col: 0 });
+        setCursor({ line: lastLine, col: lastLineLength });
+        return true;
+      }
+
+      // Ctrl+Home: jump to start of document.
+      if (event.ctrlKey && event.key === "Home") {
+        const newCursor = { line: 0, col: 0 };
+        if (isShift) {
+          if (!selectionAnchor) setSelectionAnchor({ ...cursor });
+        } else {
+          setSelectionAnchor(null);
+        }
+        setCursor(newCursor);
+        return true;
+      }
+
+      // Ctrl+End: jump to end of document.
+      if (event.ctrlKey && event.key === "End") {
+        const lastLine = currentLines.length - 1;
+        const lastLineLength = (currentLines[lastLine] ?? "").length;
+        const newCursor = { line: lastLine, col: lastLineLength };
+        if (isShift) {
+          if (!selectionAnchor) setSelectionAnchor({ ...cursor });
+        } else {
+          setSelectionAnchor(null);
+        }
+        setCursor(newCursor);
+        return true;
+      }
+
+      // Ctrl+ArrowLeft: word navigation within current line.
+      if (event.ctrlKey && event.key === "ArrowLeft") {
+        const line = currentLines[cursor.line] ?? "";
+        const newCol = wordBoundaryLeft(line, cursor.col);
+        const newCursor = newCol !== cursor.col
+          ? { line: cursor.line, col: newCol }
+          : cursor.line > 0
+            ? { line: cursor.line - 1, col: (currentLines[cursor.line - 1] ?? "").length }
+            : cursor;
+        if (isShift) {
+          if (!selectionAnchor) setSelectionAnchor({ ...cursor });
+        } else {
+          setSelectionAnchor(null);
+        }
+        setCursor(newCursor);
+        return true;
+      }
+
+      // Ctrl+ArrowRight: word navigation within current line.
+      if (event.ctrlKey && event.key === "ArrowRight") {
+        const line = currentLines[cursor.line] ?? "";
+        const newCol = wordBoundaryRight(line, cursor.col);
+        const newCursor = newCol !== cursor.col
+          ? { line: cursor.line, col: newCol }
+          : cursor.line < currentLines.length - 1
+            ? { line: cursor.line + 1, col: 0 }
+            : cursor;
+        if (isShift) {
+          if (!selectionAnchor) setSelectionAnchor({ ...cursor });
+        } else {
+          setSelectionAnchor(null);
+        }
+        setCursor(newCursor);
+        return true;
+      }
+
+      // Page navigation (needs innerHeight from closure).
+      if (event.key === "PageUp") {
+        const newCursor = {
+          line: Math.max(0, cursor.line - innerHeight),
+          col: Math.min(cursor.col, (currentLines[Math.max(0, cursor.line - innerHeight)] ?? "").length),
+        };
+        if (isShift) {
+          if (!selectionAnchor) setSelectionAnchor({ ...cursor });
+        } else {
+          setSelectionAnchor(null);
+        }
+        setCursor(newCursor);
+        return true;
+      }
+      if (event.key === "PageDown") {
+        const newLine = Math.min(currentLines.length - 1, cursor.line + innerHeight);
+        const newCursor = {
+          line: newLine,
+          col: Math.min(cursor.col, (currentLines[newLine] ?? "").length),
+        };
+        if (isShift) {
+          if (!selectionAnchor) setSelectionAnchor({ ...cursor });
+        } else {
+          setSelectionAnchor(null);
+        }
+        setCursor(newCursor);
+        return true;
+      }
 
       // Navigation keys (always available).
-      const navResult = handleNavigation(event, currentLines, setCursor);
-      if (navResult) return true;
+      const navTarget = computeNavigation(event.key, cursor, currentLines, wrap, innerWidth);
+      if (navTarget !== undefined) {
+        if (isShift) {
+          // Shift+arrow: set anchor if not set, then move cursor
+          if (!selectionAnchor) setSelectionAnchor({ ...cursor });
+        } else {
+          // Non-shift arrow: clear selection
+          setSelectionAnchor(null);
+        }
+        setCursor(navTarget);
+        return true;
+      }
 
       if (readOnly) return;
 
       // Editing keys (Enter, Backspace, Delete).
-      const editResult = handleEditing(event, currentLines, cursor, setCursor, onChange);
+      const editResult = handleEditing(event, currentLines, cursor, setCursor, onChange, selectionAnchor, setSelectionAnchor);
       if (editResult) return true;
 
       // Printable character insertion.
-      return handleTextInsertion(event, currentLines, cursor, setCursor, onChange);
+      return handleTextInsertion(event, currentLines, cursor, setCursor, onChange, selectionAnchor, setSelectionAnchor);
     },
-    [disabled, readOnly, value, cursor, onChange],
+    [disabled, readOnly, value, cursor, onChange, innerHeight, innerWidth, wrap, selectionAnchor],
   );
 
   // Border styling.
-  const { borderStyle, borderColor: focusBorderColor } = getBorderProps(focused, theme);
+  const { borderStyle, borderColor: focusBorderColor } = getBorderPropsWithHover(focused, hovered, theme);
 
   const borderColor = disabled
     ? theme.colors.textDim
@@ -313,14 +342,14 @@ export function TextArea({
   // Determine if we should show the placeholder.
   const showPlaceholder = value.length === 0 && placeholder && !focused;
 
-  // Scroll indicators.
+  // Scroll indicators (contentRows already computed above for click handling).
   const canScrollUp = scrollY > 0;
-  const canScrollDown = scrollY + innerHeight < displayLines.length;
+  const canScrollDown = scrollY + contentRows < displayLines.length;
 
   // Build visible rows.
   const visibleDisplayLines = displayLines.slice(
     scrollY,
-    scrollY + innerHeight,
+    scrollY + contentRows,
   );
 
   // Determine which display row the cursor is on within the visible window.
@@ -328,8 +357,25 @@ export function TextArea({
 
   // For the cursor's display column when wrapping:
   const cursorDisplayCol = wrap
-    ? cursor.col % innerWidth
-    : cursor.col;
+    ? (() => {
+        const mod = cursor.col % innerWidth;
+        if (mod === 0 && cursor.col > 0 && cursor.col >= (lines[cursor.line] ?? "").length) {
+          // Cursor at end of line at a sub-line boundary: display at rightmost column
+          return innerWidth - 1;
+        }
+        return mod;
+      })()
+    : cursor.col - hScrollOffset;
+
+  // Pre-compute selection range offsets for rendering.
+  let selStartOffset = -1;
+  let selEndOffset = -1;
+  if (selectionAnchor && focused) {
+    const range = getSelectionRange(selectionAnchor, cursor, lines);
+    selStartOffset = range.startOffset;
+    selEndOffset = range.endOffset;
+  }
+  const hasSelection = selStartOffset >= 0 && selStartOffset !== selEndOffset;
 
   const renderedLines: React.ReactNode[] = [];
 
@@ -340,7 +386,7 @@ export function TextArea({
       </Text>,
     );
     // Fill remaining rows with empty lines.
-    for (let i = 1; i < innerHeight; i++) {
+    for (let i = 1; i < contentRows; i++) {
       renderedLines.push(
         <Text key={`empty-${i}`} color={textColor}>
           {" ".repeat(innerWidth)}
@@ -348,7 +394,7 @@ export function TextArea({
       );
     }
   } else {
-    for (let i = 0; i < innerHeight; i++) {
+    for (let i = 0; i < contentRows; i++) {
       const dl = visibleDisplayLines[i];
       if (!dl) {
         // Empty row past end of content.
@@ -360,32 +406,49 @@ export function TextArea({
         continue;
       }
 
-      const lineText = dl.text.slice(0, innerWidth).padEnd(innerWidth, " ");
+      const lineText = wrap
+        ? dl.text.slice(0, innerWidth).padEnd(innerWidth, " ")
+        : dl.text.slice(hScrollOffset, hScrollOffset + innerWidth).padEnd(innerWidth, " ");
 
-      // Check if cursor is on this visible row.
-      if (
-        focused &&
-        i === cursorVisibleRow &&
-        cursorDisplayCol >= 0 &&
-        cursorDisplayCol < innerWidth
-      ) {
-        const before = lineText.slice(0, cursorDisplayCol);
-        const cursorChar = lineText[cursorDisplayCol] ?? " ";
-        const after = lineText.slice(cursorDisplayCol + 1);
+      // Compute the flat offset range for this display line.
+      // We need to determine which logical offset each character in this display line maps to.
+      const globalDisplayRow = scrollY + i;
+      let displayLineStartOffset = 0;
+      if (wrap) {
+        // Walk display lines to find the offset of the first char in this display line
+        let dRow = 0;
+        for (let li = 0; li < lines.length; li++) {
+          const wrapped = wrapLine(lines[li], innerWidth);
+          if (globalDisplayRow < dRow + wrapped.length) {
+            const subIdx = globalDisplayRow - dRow;
+            displayLineStartOffset = cursorToOffset({ line: li, col: subIdx * innerWidth }, lines);
+            break;
+          }
+          dRow += wrapped.length;
+        }
+      } else {
+        displayLineStartOffset = cursorToOffset({ line: dl.logicalLine, col: hScrollOffset }, lines);
+      }
 
+      // Check if this row has any selection or cursor
+      const hasCursorOnRow = focused && i === cursorVisibleRow && cursorDisplayCol >= 0 && cursorDisplayCol < innerWidth;
+      const rowEndOffset = displayLineStartOffset + lineText.length;
+      const hasSelectionOnRow = hasSelection && selStartOffset < rowEndOffset && selEndOffset > displayLineStartOffset;
+
+      if (hasCursorOnRow || hasSelectionOnRow) {
+        const segments = renderStyledLine({
+          lineText,
+          innerWidth,
+          charOffsetBase: displayLineStartOffset,
+          cursorCol: hasCursorOnRow ? cursorDisplayCol : null,
+          selStart: selStartOffset,
+          selEnd: selEndOffset,
+          textColor,
+          primaryColor: theme.colors.primary,
+        });
         renderedLines.push(
           <Box key={`line-${i}`} flexDirection="row">
-            {before.length > 0 && (
-              <Text color={textColor}>{before}</Text>
-            )}
-            <Text
-              color={theme.colors.primary}
-              backgroundColor={textColor}
-              bold
-            >
-              {cursorChar}
-            </Text>
-            {after.length > 0 && <Text color={textColor}>{after}</Text>}
+            {segments}
           </Box>,
         );
       } else {
@@ -406,12 +469,17 @@ export function TextArea({
       borderStyle={borderStyle}
       color={borderColor}
       focusable={!disabled}
+      cursor={disabled ? undefined : "text"}
       role="textbox"
+      aria-multiline={true}
       aria-label={ariaLabel}
       aria-disabled={disabled || undefined}
       onKeyDown={handleKeyDown}
+      onPointerDown={handlePointerDown}
       onFocus={onFocus}
       onBlur={onBlur}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
     >
       {canScrollUp && (
         <Text color={theme.colors.textDim}>
